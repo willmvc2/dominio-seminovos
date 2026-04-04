@@ -1,24 +1,28 @@
 import { useEffect, useState } from "react";
-import { db } from "../lib/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export function useCarros() {
   const [carros, setCarros] = useState<any[]>([]);
 
   useEffect(() => {
-    const ref = collection(db, "carros");
+    async function carregar() {
+      try {
+        const snapshot = await getDocs(collection(db, "carros"));
 
-    const unsub = onSnapshot(ref, (snapshot) => {
-      const lista = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+        const lista = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-      setCarros(lista);
-    });
+        setCarros(lista);
+      } catch (error) {
+        console.error("❌ ERRO AO BUSCAR CARROS:", error);
+      }
+    }
 
-    return () => unsub();
+    carregar();
   }, []);
 
-  return { carros, setCarros };
+  return { carros };
 }

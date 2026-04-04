@@ -7,10 +7,10 @@ const firebaseConfig = {
   projectId: "dominio-seminovos",
   storageBucket: "dominio-seminovos.firebasestorage.app",
   messagingSenderId: "652942705429",
-  appId: "1:652942705429:web:d36b58f92007345d7b5f1c"
+  appId: "1:652942705429:web:d36b58f92007345d7b5f1c",
 };
 
 const app = initializeApp(firebaseConfig);
 
-// banco Firestore
+// 🔥 Firestore banco
 export const db = getFirestore(app);
