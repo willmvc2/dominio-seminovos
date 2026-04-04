@@ -52,38 +52,41 @@ export default function NovoCarro() {
     }
   }
 
-  // 🔥 FUNÇÃO FINAL ESTÁVEL
+  // 🔥 FUNÇÃO CORRIGIDA
   async function salvarCarro() {
-    console.log("👉 CLIQUE DETECTADO");
+  console.log("🔥 ENTROU NA FUNÇÃO SALVAR");
 
-    if (!db) {
-      console.error("Firebase DB não inicializado");
-      alert("Erro de conexão com banco");
-      return;
-    }
+  try {
+    console.log("🔥 TENTANDO SALVAR NO FIREBASE");
 
-    if (!nome || !preco) {
-      alert("Preencha nome e preço");
-      return;
-    }
-
-    const novo = {
-      nome,
-      ano,
-      km,
-      cambio,
-      combustivel,
-      preco,
-      descricao,
-      video,
-      imagens,
-      status: "disponivel",
+    const ref = await addDoc(collection(db, "carros"), {
+      nome: "TESTE",
       criadoEm: Date.now(),
-    };
+    });
 
-    console.log("📦 ENVIANDO:", novo);
+    console.log("✅ SALVO COM SUCESSO:", ref.id);
 
-    try {
+  } catch (error) {
+    console.error("❌ ERRO AO SALVAR:", error);
+  }
+}
+
+      const novo = {
+        nome,
+        ano,
+        km,
+        cambio,
+        combustivel,
+        preco,
+        descricao,
+        video,
+        imagens,
+        status: "disponivel",
+        criadoEm: Date.now(),
+      };
+
+      console.log("📦 ENVIANDO:", novo);
+
       const ref = await addDoc(collection(db, "carros"), novo);
 
       console.log("✅ SALVO COM ID:", ref.id);
@@ -101,9 +104,14 @@ export default function NovoCarro() {
     <main style={styles.main}>
       <div style={styles.container}>
 
-        <button onClick={() => router.push("/admin")} style={styles.back}>
-          ← Voltar
-        </button>
+        <button
+  onClick={() => {
+    console.log("🔥 BOTÃO CLICADO");
+    salvarCarro();
+  }}
+>
+  Salvar
+</button>
 
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
@@ -174,15 +182,12 @@ export default function NovoCarro() {
           <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
 
           <button
-  type="button"
-  onClick={() => {
-    console.log("🔥 BOTÃO FOI CLICADO");
-    salvarCarro();
-  }}
-  style={styles.save}
->
-  Salvar veículo
-</button>
+            type="button"
+            onClick={() => salvarCarro()}
+            style={styles.save}
+          >
+            Salvar veículo
+          </button>
         </div>
       </div>
 
