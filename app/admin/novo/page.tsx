@@ -52,12 +52,18 @@ export default function NovoCarro() {
     }
   }
 
-  // ✅ FUNÇÃO CORRIGIDA
+  // 🔥 FUNÇÃO FINAL ESTÁVEL
   async function salvarCarro() {
-    console.log("SALVANDO NO FIREBASE...");
+    console.log("👉 CLIQUE DETECTADO");
+
+    if (!db) {
+      console.error("Firebase DB não inicializado");
+      alert("Erro de conexão com banco");
+      return;
+    }
 
     if (!nome || !preco) {
-      alert("Preencha pelo menos nome e preço");
+      alert("Preencha nome e preço");
       return;
     }
 
@@ -75,13 +81,18 @@ export default function NovoCarro() {
       criadoEm: Date.now(),
     };
 
-    console.log(novo);
+    console.log("📦 ENVIANDO:", novo);
 
     try {
-      await addDoc(collection(db, "carros"), novo);
+      const ref = await addDoc(collection(db, "carros"), novo);
+
+      console.log("✅ SALVO COM ID:", ref.id);
+
+      alert("Carro salvo com sucesso!");
+
       router.push("/admin");
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("❌ ERRO FIREBASE:", error?.message || error);
       alert("Erro ao salvar veículo");
     }
   }
@@ -104,7 +115,7 @@ export default function NovoCarro() {
 
           {imagens.length === 0 && (
             <div
-              onClick={() => document.getElementById("inputFile")?.click()}
+              onClick={() => document.getElementById("fileInput")?.click()}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -132,17 +143,11 @@ export default function NovoCarro() {
                 onClick={() => setImagemAtual(i)}
                 style={{
                   ...styles.thumb,
-                  border:
-                    imagemAtual === i
-                      ? "2px solid #16a34a"
-                      : "2px solid transparent",
+                  border: imagemAtual === i ? "2px solid #16a34a" : "2px solid transparent",
                 }}
               />
 
-              <button
-                onClick={() => excluirImagem(i)}
-                style={styles.deleteBtn}
-              >
+              <button onClick={() => excluirImagem(i)} style={styles.deleteBtn}>
                 ✕
               </button>
             </div>
@@ -152,7 +157,7 @@ export default function NovoCarro() {
         {/* UPLOAD */}
         <label style={styles.upload}>
           📸 Inserir fotos
-          <input type="file" multiple hidden onChange={adicionarImagem} />
+          <input id="fileInput" type="file" multiple hidden onChange={adicionarImagem} />
         </label>
 
         {/* FORM */}
@@ -168,7 +173,7 @@ export default function NovoCarro() {
 
           <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
 
-          <button onClick={salvarCarro} style={styles.save}>
+          <button type="button" onClick={salvarCarro} style={styles.save}>
             Salvar veículo
           </button>
         </div>
