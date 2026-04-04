@@ -9,7 +9,6 @@ export default function NovoCarro() {
   const router = useRouter();
 
   const [imagemAtual, setImagemAtual] = useState(0);
-  const [fullscreen, setFullscreen] = useState(false);
 
   const [nome, setNome] = useState("");
   const [ano, setAno] = useState("");
@@ -45,11 +44,20 @@ export default function NovoCarro() {
   function excluirImagem(index: number) {
     const novas = imagens.filter((_, i) => i !== index);
     setImagens(novas);
+
+    if (imagemAtual >= novas.length) {
+      setImagemAtual(Math.max(novas.length - 1, 0));
+    }
   }
 
-  // 🔥 SALVAR CORRETO NO FIREBASE
+  // 🔥 SALVAR NO FIREBASE (CORRETO)
   async function salvarCarro() {
     console.log("🔥 SALVANDO NO FIREBASE");
+
+    if (!nome || !preco) {
+      alert("Preencha nome e preço");
+      return;
+    }
 
     try {
       const novoCarro = {
@@ -80,19 +88,40 @@ export default function NovoCarro() {
   }
 
   return (
-    <main>
+    <main style={{ padding: 20 }}>
+      <h1>Cadastrar veículo</h1>
+
+      <button onClick={() => router.push("/admin")}>
+        ← Voltar
+      </button>
+
+      {/* IMAGEM */}
       <div>
-
-        <button onClick={salvarCarro}>
-          Salvar
-        </button>
-
         <img
-          src={imagens[imagemAtual] || "https://via.placeholder.com/800x400"}
+          src={imagens[imagemAtual] || "https://picsum.photos/800/400"}
+          style={{ width: "100%", maxHeight: 300, objectFit: "cover" }}
         />
+      </div>
 
-        <input type="file" multiple onChange={adicionarImagem} />
+      {/* UPLOAD */}
+      <input type="file" multiple onChange={adicionarImagem} />
 
+      {/* MINIATURAS */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {imagens.map((img, i) => (
+          <div key={i}>
+            <img
+              src={img}
+              onClick={() => setImagemAtual(i)}
+              style={{ width: 80, height: 60, cursor: "pointer" }}
+            />
+            <button onClick={() => excluirImagem(i)}>X</button>
+          </div>
+        ))}
+      </div>
+
+      {/* FORM */}
+      <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
         <input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
         <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} />
         <input placeholder="KM" value={km} onChange={(e) => setKm(e.target.value)} />
@@ -107,7 +136,6 @@ export default function NovoCarro() {
         <button onClick={salvarCarro}>
           Salvar veículo
         </button>
-
       </div>
     </main>
   );
