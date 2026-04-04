@@ -6,7 +6,9 @@ import { useCarros } from "../../../data/useCarros";
 
 export default function NovoCarro() {
   const router = useRouter();
-  const { carros, salvar } = useCarros();
+
+  import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -54,11 +56,59 @@ Array.from(files).forEach((file) => {
   }
 
   // ✅ FUNÇÃO CORRIGIDA
-  function salvarCarro() {
-    if (!nome || !preco) {
-      alert("Preencha pelo menos nome e preço");
-      return;
-    }
+  sync async function salvarCarro() {
+  if (!nome || !preco) {
+    alert("Preencha pelo menos nome e preço");
+    return;
+  }
+
+  const novo = {
+    nome,
+    ano,
+    km,
+    cambio,
+    combustivel,
+    preco,
+    descricao,
+    video,
+    imagens,
+    status: "disponivel",
+    criadoEm: Date.now(),
+  };
+
+  try {
+    await addDoc(collection(db, "carros"), novo);
+
+    router.push("/admin");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar veículo");
+  }
+}
+
+  const novo = {
+    nome,
+    ano,
+    km,
+    cambio,
+    combustivel,
+    preco,
+    descricao,
+    video,
+    imagens,
+    status: "disponivel",
+    criadoEm: Date.now(),
+  };
+
+  try {
+    await addDoc(collection(db, "carros"), novo);
+
+    router.push("/admin");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar veículo");
+  }
+}
 
     const novo = {
       id: Date.now(),

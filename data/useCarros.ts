@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
+import { db } from "../lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
 export function useCarros() {
   const [carros, setCarros] = useState<any[]>([]);
 
   useEffect(() => {
-    const data = localStorage.getItem("carros");
-    if (data) {
-      setCarros(JSON.parse(data));
-    }
+    const ref = collection(db, "carros");
+
+    const unsub = onSnapshot(ref, (snapshot) => {
+      const lista = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setCarros(lista);
+    });
+
+    return () => unsub();
   }, []);
 
-  function salvar(novaLista: any[]) {
-    setCarros(novaLista);
-    localStorage.setItem("carros", JSON.stringify(novaLista));
-
-    // 🔥 ISSO AQUI É O QUE FALTAVA
-    window.dispatchEvent(new Event("carros-updated"));
-  }
-
-  return { carros, setCarros, salvar };
+  return { carros, setCarros };
 }
