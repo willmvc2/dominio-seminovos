@@ -173,9 +173,16 @@ export default function NovoCarro() {
 
           <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
 
-          <button type="button" onClick={salvarCarro} style={styles.save}>
-            Salvar veículo
-          </button>
+          <button
+  type="button"
+  onClick={() => {
+    console.log("🔥 BOTÃO FOI CLICADO");
+    salvarCarro();
+  }}
+  style={styles.save}
+>
+  Salvar veículo
+</button>
         </div>
       </div>
 
