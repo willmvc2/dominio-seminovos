@@ -2,13 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useCarros } from "../../../data/useCarros";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 
 export default function NovoCarro() {
   const router = useRouter();
-
-  import { collection, addDoc } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -30,20 +28,19 @@ import { db } from "../../../lib/firebase";
 
     const novas: string[] = [];
 
-Array.from(files).forEach((file) => {
-  const reader = new FileReader();
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
 
-  reader.onloadend = () => {
-    novas.push(reader.result as string);
+      reader.onloadend = () => {
+        novas.push(reader.result as string);
 
-    // quando terminar todas
-    if (novas.length === files.length) {
-      setImagens((prev) => [...prev, ...novas]);
-    }
-  };
+        if (novas.length === files.length) {
+          setImagens((prev) => [...prev, ...novas]);
+        }
+      };
 
-  reader.readAsDataURL(file);
-});
+      reader.readAsDataURL(file);
+    });
   }
 
   function excluirImagem(index: number) {
@@ -55,63 +52,14 @@ Array.from(files).forEach((file) => {
     }
   }
 
-  // ✅ FUNÇÃO CORRIGIDA
-  sync async function salvarCarro() {
-  if (!nome || !preco) {
-    alert("Preencha pelo menos nome e preço");
-    return;
-  }
-
-  const novo = {
-    nome,
-    ano,
-    km,
-    cambio,
-    combustivel,
-    preco,
-    descricao,
-    video,
-    imagens,
-    status: "disponivel",
-    criadoEm: Date.now(),
-  };
-
-  try {
-    await addDoc(collection(db, "carros"), novo);
-
-    router.push("/admin");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao salvar veículo");
-  }
-}
-
-  const novo = {
-    nome,
-    ano,
-    km,
-    cambio,
-    combustivel,
-    preco,
-    descricao,
-    video,
-    imagens,
-    status: "disponivel",
-    criadoEm: Date.now(),
-  };
-
-  try {
-    await addDoc(collection(db, "carros"), novo);
-
-    router.push("/admin");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao salvar veículo");
-  }
-}
+  // ✅ FUNÇÃO CORRIGIDA (FIREBASE)
+  async function salvarCarro() {
+    if (!nome || !preco) {
+      alert("Preencha pelo menos nome e preço");
+      return;
+    }
 
     const novo = {
-      id: Date.now(),
       nome,
       ano,
       km,
@@ -121,13 +69,17 @@ Array.from(files).forEach((file) => {
       descricao,
       video,
       imagens,
+      status: "disponivel",
+      criadoEm: Date.now(),
     };
 
-    // 🔥 salva corretamente no localStorage + state global
-    salvar([...carros, novo]);
-
-    // 🔥 volta pra home
-    router.push("/admin");
+    try {
+      await addDoc(collection(db, "carros"), novo);
+      router.push("/admin");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar veículo");
+    }
   }
 
   return (
@@ -140,33 +92,32 @@ Array.from(files).forEach((file) => {
 
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
-  <img
-    src={imagens[imagemAtual] || "https://via.placeholder.com/800x400"}
-    onClick={() => setFullscreen(true)}
-    style={styles.mainImage}
-  />
+          <img
+            src={imagens[imagemAtual] || "https://via.placeholder.com/800x400"}
+            onClick={() => setFullscreen(true)}
+            style={styles.mainImage}
+          />
 
-  {/* 🔥 TEXTO NO CENTRO */}
-  {imagens.length === 0 && (
-    <div
-      onClick={() => document.getElementById("inputFile")?.click()}
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontSize: 18,
-        fontWeight: "bold",
-        background: "rgba(0,0,0,0.4)",
-        borderRadius: 10,
-        cursor: "pointer",
-      }}
-    >
-      Inserir imagem
-    </div>
-  )}
-</div>
+          {imagens.length === 0 && (
+            <div
+              onClick={() => document.getElementById("inputFile")?.click()}
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: 18,
+                fontWeight: "bold",
+                background: "rgba(0,0,0,0.4)",
+                borderRadius: 10,
+                cursor: "pointer",
+              }}
+            >
+              Inserir imagem
+            </div>
+          )}
+        </div>
 
         {/* MINIATURAS */}
         <div style={styles.thumbs}>
