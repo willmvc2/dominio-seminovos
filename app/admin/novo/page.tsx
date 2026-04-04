@@ -52,39 +52,14 @@ export default function NovoCarro() {
     }
   }
 
-  // ✅ FUNÇÃO CORRIGIDA (FIREBASE)
+  // ✅ FUNÇÃO CORRIGIDA
   async function salvarCarro() {
-  console.log("SALVANDO NO FIREBASE...");
+    console.log("SALVANDO NO FIREBASE...");
 
-  if (!nome || !preco) {
-    alert("Preencha pelo menos nome e preço");
-    return;
-  }
-
-  const novo = {
-    nome,
-    ano,
-    km,
-    cambio,
-    combustivel,
-    preco,
-    descricao,
-    video,
-    imagens,
-    status: "disponivel",
-    criadoEm: Date.now(),
-  };
-
-  console.log(novo);
-
-  try {
-    await addDoc(collection(db, "carros"), novo);
-    router.push("/admin");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao salvar veículo");
-  }
-}
+    if (!nome || !preco) {
+      alert("Preencha pelo menos nome e preço");
+      return;
+    }
 
     const novo = {
       nome,
@@ -99,6 +74,8 @@ export default function NovoCarro() {
       status: "disponivel",
       criadoEm: Date.now(),
     };
+
+    console.log(novo);
 
     try {
       await addDoc(collection(db, "carros"), novo);
