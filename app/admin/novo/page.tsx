@@ -51,13 +51,22 @@ export default function NovoCarro() {
   }
 
   // 🔥 SALVAR NO FIREBASE (CORRETO)
-  async function salvarCarro() {
-    console.log("🔥 SALVANDO NO FIREBASE");
+  sync function salvarCarro() {
+  console.log("🔥 CLICOU SALVAR");
 
-    if (!nome || !preco) {
-      alert("Preencha nome e preço");
-      return;
-    }
+  try {
+    const ref = await addDoc(collection(db, "carros"), {
+      nome: "TESTE",
+      criadoEm: Date.now(),
+    });
+
+    console.log("✅ SALVOU:", ref.id);
+    alert("SALVOU NO FIREBASE");
+  } catch (error) {
+    console.error("❌ ERRO:", error);
+    alert("ERRO AO SALVAR");
+  }
+}
 
     try {
       const novoCarro = {
