@@ -1,8 +1,9 @@
-'use client';
-import { initializeApp } from "firebase/app";
+'use client'; // 1. Isso avisa a Vercel que o código roda no navegador
+
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Usando variáveis de ambiente (o jeito correto para Vercel)
+// 2. Suas variáveis que já configuramos
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,7 +13,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Inicializa o Firebase apenas se as variáveis existirem
-const app = initializeApp(firebaseConfig);
+// 3. Segurança: Só inicializa se já não houver um app rodando
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
+// 4. Exporta o banco de dados
 export const db = getFirestore(app);
