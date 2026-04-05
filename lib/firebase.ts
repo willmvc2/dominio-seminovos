@@ -1,15 +1,17 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
+// Usando variáveis de ambiente (o jeito correto para Vercel)
 const firebaseConfig = {
-  apiKey: "AIzaSyCPVH4Z-X4EEDRHQ6jbOz-7bKIJ0GEKE7I",
-  authDomain: "site-dominio-1265e.firebaseapp.com",
-  projectId: "site-dominio-1265e",
-  storageBucket: "site-dominio-1265e.firebasestorage.app",
-  messagingSenderId: "297737814734",
-  appId: "1:297737814734:web:22ad2b2c569ef52b87869f"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Inicializa o Firebase apenas se as variáveis existirem
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);

@@ -8,8 +8,8 @@ import { db } from "@/lib/firebase";
 export default function NovoCarro() {
   const router = useRouter();
 
+  // Estados do formulário
   const [imagemAtual, setImagemAtual] = useState(0);
-
   const [nome, setNome] = useState("");
   const [ano, setAno] = useState("");
   const [km, setKm] = useState("");
@@ -20,6 +20,7 @@ export default function NovoCarro() {
   const [video, setVideo] = useState("");
   const [imagens, setImagens] = useState<string[]>([]);
 
+  // Função para adicionar imagens
   function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
@@ -30,10 +31,12 @@ export default function NovoCarro() {
       const reader = new FileReader();
 
       reader.onloadend = () => {
-        novas.push(reader.result as string);
+        if (reader.result) {
+          novas.push(reader.result as string);
 
-        if (novas.length === files.length) {
-          setImagens((prev) => [...prev, ...novas]);
+          if (novas.length === files.length) {
+            setImagens((prev) => [...prev, ...novas]);
+          }
         }
       };
 
@@ -41,6 +44,7 @@ export default function NovoCarro() {
     });
   }
 
+  // Função para excluir imagem
   function excluirImagem(index: number) {
     const novas = imagens.filter((_, i) => i !== index);
     setImagens(novas);
@@ -50,23 +54,14 @@ export default function NovoCarro() {
     }
   }
 
-  // 🔥 SALVAR NO FIREBASE (CORRETO)
-  sync function salvarCarro() {
-  console.log("🔥 CLICOU SALVAR");
+  // Função para salvar no Firebase
+  async function salvarCarro() {
+    console.log("🔥 CLICOU SALVAR");
 
-  try {
-    const ref = await addDoc(collection(db, "carros"), {
-      nome: "TESTE",
-      criadoEm: Date.now(),
-    });
-
-    console.log("✅ SALVOU:", ref.id);
-    alert("SALVOU NO FIREBASE");
-  } catch (error) {
-    console.error("❌ ERRO:", error);
-    alert("ERRO AO SALVAR");
-  }
-}
+    if (!nome || !ano || !preco) {
+      alert("Preencha pelo menos Nome, Ano e Preço");
+      return;
+    }
 
     try {
       const novoCarro = {
@@ -86,64 +81,165 @@ export default function NovoCarro() {
       const ref = await addDoc(collection(db, "carros"), novoCarro);
 
       console.log("✅ SALVO COM ID:", ref.id);
-
       alert("Carro salvo com sucesso!");
+
+      // Limpa formulário
+      setNome("");
+      setAno("");
+      setKm("");
+      setCambio("");
+      setCombustivel("");
+      setPreco("");
+      setDescricao("");
+      setVideo("");
+      setImagens([]);
 
       router.push("/admin");
     } catch (error) {
       console.error("❌ ERRO AO SALVAR:", error);
-      alert("Erro ao salvar veículo");
+      alert("Erro ao salvar veículo. Veja o console.");
     }
   }
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Cadastrar veículo</h1>
+    <main style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <h1>Cadastrar Novo Veículo</h1>
 
-      <button onClick={() => router.push("/admin")}>
-        ← Voltar
+      <button 
+        onClick={() => router.push("/admin")}
+        style={{ marginBottom: 20, padding: "8px 16px" }}
+      >
+        ← Voltar para Admin
       </button>
 
-      {/* IMAGEM */}
-      <div>
+      {/* Preview da imagem principal */}
+      <div style={{ marginBottom: 15 }}>
         <img
-          src={imagens[imagemAtual] || "https://picsum.photos/800/400"}
-          style={{ width: "100%", maxHeight: 300, objectFit: "cover" }}
+          src={imagens[imagemAtual] || "https://picsum.photos/800/400?text=Sem+Imagem"}
+          alt="Preview do veículo"
+          style={{ 
+            width: "100%", 
+            maxHeight: 320, 
+            objectFit: "cover",
+            borderRadius: 8 
+          }}
         />
       </div>
 
-      {/* UPLOAD */}
-      <input type="file" multiple onChange={adicionarImagem} />
-
-      {/* MINIATURAS */}
-      <div style={{ display: "flex", gap: 10 }}>
-        {imagens.map((img, i) => (
-          <div key={i}>
-            <img
-              src={img}
-              onClick={() => setImagemAtual(i)}
-              style={{ width: 80, height: 60, cursor: "pointer" }}
-            />
-            <button onClick={() => excluirImagem(i)}>X</button>
-          </div>
-        ))}
+      {/* Upload de imagens */}
+      <div style={{ marginBottom: 15 }}>
+        <input 
+          type="file" 
+          multiple 
+          accept="image/*" 
+          onChange={adicionarImagem} 
+        />
+        <p style={{ fontSize: 14, color: "#666", marginTop: 5 }}>
+          Você pode selecionar várias imagens de uma vez
+        </p>
       </div>
 
-      {/* FORM */}
-      <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-        <input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-        <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} />
-        <input placeholder="KM" value={km} onChange={(e) => setKm(e.target.value)} />
-        <input placeholder="Câmbio" value={cambio} onChange={(e) => setCambio(e.target.value)} />
-        <input placeholder="Combustível" value={combustivel} onChange={(e) => setCombustivel(e.target.value)} />
-        <input placeholder="Preço" value={preco} onChange={(e) => setPreco(e.target.value)} />
+      {/* Miniaturas */}
+      {imagens.length > 0 && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+          {imagens.map((img, i) => (
+            <div key={i} style={{ position: "relative" }}>
+              <img
+                src={img}
+                alt={`Miniatura ${i}`}
+                onClick={() => setImagemAtual(i)}
+                style={{ 
+                  width: 80, 
+                  height: 60, 
+                  objectFit: "cover", 
+                  cursor: "pointer",
+                  border: imagemAtual === i ? "3px solid #0070f3" : "1px solid #ccc",
+                  borderRadius: 4
+                }}
+              />
+              <button 
+                onClick={() => excluirImagem(i)}
+                style={{
+                  position: "absolute",
+                  top: -6,
+                  right: -6,
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 22,
+                  height: 22,
+                  cursor: "pointer",
+                  fontSize: 14
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-        <textarea placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+      {/* Formulário */}
+      <div style={{ display: "grid", gap: 12 }}>
+        <input 
+          placeholder="Nome do veículo *" 
+          value={nome} 
+          onChange={(e) => setNome(e.target.value)} 
+        />
+        <input 
+          placeholder="Ano *" 
+          value={ano} 
+          onChange={(e) => setAno(e.target.value)} 
+        />
+        <input 
+          placeholder="KM" 
+          value={km} 
+          onChange={(e) => setKm(e.target.value)} 
+        />
+        <input 
+          placeholder="Câmbio" 
+          value={cambio} 
+          onChange={(e) => setCambio(e.target.value)} 
+        />
+        <input 
+          placeholder="Combustível" 
+          value={combustivel} 
+          onChange={(e) => setCombustivel(e.target.value)} 
+        />
+        <input 
+          placeholder="Preço *" 
+          value={preco} 
+          onChange={(e) => setPreco(e.target.value)} 
+        />
 
-        <input placeholder="Vídeo" value={video} onChange={(e) => setVideo(e.target.value)} />
+        <textarea 
+          placeholder="Descrição do veículo" 
+          value={descricao} 
+          onChange={(e) => setDescricao(e.target.value)} 
+          rows={4}
+        />
 
-        <button onClick={salvarCarro}>
-          Salvar veículo
+        <input 
+          placeholder="Link do vídeo (YouTube, etc)" 
+          value={video} 
+          onChange={(e) => setVideo(e.target.value)} 
+        />
+
+        <button 
+          onClick={salvarCarro}
+          style={{ 
+            padding: "14px", 
+            fontSize: 16, 
+            background: "#0070f3", 
+            color: "white", 
+            border: "none", 
+            borderRadius: 6,
+            cursor: "pointer",
+            marginTop: 10
+          }}
+        >
+          Salvar Veículo no Firebase
         </button>
       </div>
     </main>
