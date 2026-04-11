@@ -26,22 +26,8 @@ export default function NovoCarro() {
     const files = e.target.files;
     if (!files) return;
 
-    const novas: string[] = [];
-
-Array.from(files).forEach((file) => {
-  const reader = new FileReader();
-
-  reader.onloadend = () => {
-    novas.push(reader.result as string);
-
-    // quando terminar todas
-    if (novas.length === files.length) {
-      setImagens((prev) => [...prev, ...novas]);
-    }
-  };
-
-  reader.readAsDataURL(file);
-});
+    const novas = Array.from(files).map((f) => URL.createObjectURL(f));
+    setImagens((prev) => [...prev, ...novas]);
   }
 
   function excluirImagem(index: number) {
@@ -77,7 +63,7 @@ Array.from(files).forEach((file) => {
     salvar([...carros, novo]);
 
     // 🔥 volta pra home
-    router.push("/admin");
+    router.push("/");
   }
 
   return (
@@ -91,29 +77,41 @@ Array.from(files).forEach((file) => {
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
   <img
-    src={imagens[imagemAtual] || "https://via.placeholder.com/800x400"}
-    onClick={() => setFullscreen(true)}
+    src={
+      imagens[imagemAtual] ||
+      "https://via.placeholder.com/800x400"
+    }
+    onClick={() => {
+      if (imagens.length === 0) {
+        document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+      } else {
+        setFullscreen(true);
+      }
+    }}
     style={styles.mainImage}
   />
 
-  {/* 🔥 TEXTO NO CENTRO */}
+  {/* TEXTO CENTRAL */}
   {imagens.length === 0 && (
     <div
-      onClick={() => document.getElementById("inputFile")?.click()}
       style={{
         position: "absolute",
         inset: 0,
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
-        fontSize: 18,
+        justifyContent: "center",
+        color: "white",
         fontWeight: "bold",
+        fontSize: 18,
         background: "rgba(0,0,0,0.4)",
         borderRadius: 10,
         cursor: "pointer",
       }}
+      onClick={() =>
+        document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+      }
     >
-      Inserir imagem
+      📸 Inserir fotos
     </div>
   )}
 </div>

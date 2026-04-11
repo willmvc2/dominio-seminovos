@@ -1,32 +1,39 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useCarros } from "../../data/useCarros";
+import { formatarPreco } from "@/data/formatarPreco";
 
 export default function Admin() {
   const router = useRouter();
-  const { carros } = useCarros();
+  const { carros, excluir } = useCarros();
+
+  useEffect(() => {
+  const logado = sessionStorage.getItem("logado");
+
+  if (logado !== "true") {
+    router.push("/admin/login");
+  }
+}, []);
 
   if (!carros) return null;
 
-  // 🔥 PRIORIDADE
-  const prioridade: any = {
+  // 🔥 ORDENAÇÃO POR STATUS
+  const statusOrder: Record<string, number> = {
     disponivel: 1,
     preparando: 2,
     vendido: 3,
   };
 
-  // 🔥 ORDENAÇÃO
   const carrosOrdenados = [...carros].sort((a, b) => {
-    const statusA = a.status || "disponivel";
-    const statusB = b.status || "disponivel";
+    const statusA =
+      statusOrder[(a.status || "disponivel").toLowerCase().trim()] ?? 999;
 
-    const pA = prioridade[statusA] || 99;
-    const pB = prioridade[statusB] || 99;
+    const statusB =
+      statusOrder[(b.status || "disponivel").toLowerCase().trim()] ?? 999;
 
-    if (pA !== pB) {
-      return pA - pB;
-    }
+    if (statusA !== statusB) return statusA - statusB;
 
     return b.id - a.id;
   });
@@ -54,14 +61,7 @@ export default function Admin() {
               justifyContent: "space-between",
             }}
           >
-            <img
-              src="/logo.png"
-              style={{
-                height: 100,
-                width: 300,
-                objectFit: "fill",
-              }}
-            />
+            
 
             <button
               onClick={() => router.push("/admin/novo")}
@@ -108,7 +108,7 @@ export default function Admin() {
                 }}
               >
 
-                {/* FAIXA STATUS CENTRALIZADA */}
+                {/* FAIXA STATUS */}
                 <div
                   style={{
                     position: "absolute",
@@ -128,15 +128,12 @@ export default function Admin() {
                         : "#16a34a",
                     zIndex: 10,
                     fontSize: 13,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
                   }}
                 >
                   {status.toUpperCase()}
                 </div>
 
-                {/* BOTÃO EDITAR (ENGRENAGEM) */}
+                {/* BOTÃO EDITAR */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -173,56 +170,77 @@ export default function Admin() {
                   />
 
                   <div style={{ padding: 15 }}>
-                    <h2 style={{ color: "white", fontWeight: "bold" }}>
-                      {car.nome}
-                    </h2>
+  <h2 style={{ color: "white", fontWeight: "bold" }}>
+    {car.nome}
+  </h2>
 
-                    <p style={{ color: "#9ca3af" }}>
-                      {car.ano} • {car.cambio}
-                    </p>
+  <p style={{ color: "#9ca3af" }}>
+    {car.ano} • {car.cambio}
+  </p>
 
-                    {/* 🔥 PREÇO FORMATADO */}
-                    <p
-                      style={{
-                        color: "#3b82f6",
-                        fontWeight: "bold",
-                        marginTop: 5,
-                      }}
-                    >
-                      {Number(car.preco).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      })}
-                    </p>
+  <p
+    style={{
+      color: "#3b82f6",
+      fontWeight: "bold",
+      marginTop: 5,
+    }}
+  >
+    {formatarPreco(car.preco)}
+  </p>
 
-                    {/* BOTÃO DETALHES */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/admin/editar/${car.id}`);
-                      }}
-                      style={{
-                        marginTop: 10,
-                        width: "100%",
-                        padding: 8,
-                        background: "transparent",
-                        border: "1px solid #3b82f6",
-                        color: "#3b82f6",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Ver detalhes
-                    </button>
-                  </div>
+  {/* BOTÃO VER DETALHES (APENAS 1) */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      router.push(`/admin/editar/${car.id}`);
+    }}
+    style={{
+      marginTop: 10,
+      width: "100%",
+      padding: 8,
+      background: "transparent",
+      border: "1px solid #3b82f6",
+      color: "#3b82f6",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontWeight: "bold",
+    }}
+  >
+    Ver detalhes
+  </button>
+
+  {/* BOTÃO EXCLUIR */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+
+      const confirmar = confirm("Tem certeza que deseja excluir este veículo?");
+
+      if (confirmar) {
+        excluir(car.id);
+      }
+    }}
+    style={{
+      marginTop: 8,
+      width: "100%",
+      padding: 8,
+      background: "transparent",
+      border: "1px solid #dc2626",
+      color: "#dc2626",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontWeight: "bold",
+    }}
+  >
+    Excluir veículo
+  </button>
+</div>
                 </div>
               </div>
             );
           })}
         </div>
+        
 
         {/* RESPONSIVO */}
         <style jsx>{`

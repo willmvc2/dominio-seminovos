@@ -1,0 +1,169 @@
+.navbar-premium {
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    padding: 15px 0;
+}
+
+.navbar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.logo-link { text-decoration: none; }
+
+.logo-text {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-text small {
+    font-size: 0.6rem;
+    font-weight: 300;
+    margin-top: -5px;
+    color: #2e5bff; /* Cor azul do destaque */
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    gap: 30px;
+}
+
+.nav-link {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: 0.3s;
+}
+
+.nav-link:hover:not(.btn-contato) {
+    color: #2e5bff;
+}
+
+.btn-contato {
+    border: 1.5px solid #2e5bff;
+    padding: 8px 20px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-contato:hover {
+    background: #2e5bff;
+    box-shadow: 0 0 15px rgba(46, 91, 255, 0.5);
+}
+/* app/components/menu.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+.navbar-premium {
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+.navbar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.logo-img {
+    height: 50px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.logo-img:hover {
+    transform: scale(1.05);
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    gap: 30px;
+}
+
+.nav-link {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.nav-link:hover:not(.btn-contato) {
+    color: #3b82f6;
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.btn-contato {
+    border: 1.5px solid #3b82f6;
+    color: #3b82f6;
+    padding: 8px 22px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    font-weight: 700;
+}
+
+.btn-contato:hover {
+    background: #3b82f6;
+    color: white !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Hamburguer para Mobile */
+.hamburguer {
+    display: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .nav-menu { display: none; }
+    .hamburguer { display: block; }
+}
+/* Adicione isso ao final do seu menu.css */
+.menu-mobile-open {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.95);
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 70px;
+    border-bottom: 1px solid #3b82f6;
+}

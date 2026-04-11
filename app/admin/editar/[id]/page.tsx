@@ -22,7 +22,6 @@ export default function EditarCarro() {
       setForm({
         ...carro,
         imagens: carro.imagens || [],
-        status: carro?.status || "disponivel",
       });
     }
   }, [carro]);
@@ -91,7 +90,7 @@ export default function EditarCarro() {
 
         <h1 style={{ marginBottom: 20 }}>Editar veículo</h1>
 
-        {/* IMAGEM */}
+        {/* 🔥 IMAGEM COM SETAS */}
         <div style={{ position: "relative" }}>
           <img
             src={form.imagens?.[imagemAtual] || "/logo.png"}
@@ -104,24 +103,52 @@ export default function EditarCarro() {
             }}
           />
 
+          {/* SETA ESQUERDA */}
           <button
             onClick={() =>
               setImagemAtual((prev) =>
                 prev - 1 < 0 ? form.imagens.length - 1 : prev - 1
               )
             }
-            style={arrowLeft}
+            style={{
+              position: "absolute",
+              left: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(0,0,0,0.6)",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: 45,
+              height: 45,
+              cursor: "pointer",
+              fontSize: 20,
+            }}
           >
             ‹
           </button>
 
+          {/* SETA DIREITA */}
           <button
             onClick={() =>
               setImagemAtual((prev) =>
                 prev + 1 >= form.imagens.length ? 0 : prev + 1
               )
             }
-            style={arrowRight}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(0,0,0,0.6)",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: 45,
+              height: 45,
+              cursor: "pointer",
+              fontSize: 20,
+            }}
           >
             ›
           </button>
@@ -146,7 +173,18 @@ export default function EditarCarro() {
 
               <button
                 onClick={() => excluirImagem(index)}
-                style={styles.deleteBtn}
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 20,
+                  height: 20,
+                  cursor: "pointer",
+                }}
               >
                 ✕
               </button>
@@ -154,6 +192,7 @@ export default function EditarCarro() {
           ))}
         </div>
 
+        {/* UPLOAD */}
         <input
           type="file"
           ref={fileInputRef}
@@ -163,7 +202,15 @@ export default function EditarCarro() {
 
         <button
           onClick={() => fileInputRef.current?.click()}
-          style={styles.upload}
+          style={{
+            marginBottom: 20,
+            padding: 10,
+            background: "#3b82f6",
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
         >
           📸 Inserir fotos
         </button>
@@ -186,7 +233,14 @@ export default function EditarCarro() {
               <input
                 value={form[item.campo] || ""}
                 onChange={(e) => atualizar(item.campo, e.target.value)}
-                style={styles.input}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  borderRadius: 6,
+                  border: "1px solid #374151",
+                  background: "#111827",
+                  color: "white",
+                }}
               />
             </div>
           ))}
@@ -196,11 +250,18 @@ export default function EditarCarro() {
             <textarea
               value={form.descricao || ""}
               onChange={(e) => atualizar("descricao", e.target.value)}
-              style={styles.textarea}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 6,
+                border: "1px solid #374151",
+                background: "#111827",
+                color: "white",
+                minHeight: 80,
+              }}
             />
           </div>
 
-          {/* VIDEO */}
           <div>
             <label style={{ fontSize: 14, color: "#9ca3af" }}>
               Vídeo (YouTube)
@@ -209,27 +270,51 @@ export default function EditarCarro() {
               value={form.video || ""}
               onChange={(e) => atualizar("video", e.target.value)}
               placeholder="Cole o link do YouTube"
-              style={styles.input}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 6,
+                border: "1px solid #374151",
+                background: "#111827",
+                color: "white",
+              }}
             />
           </div>
 
-          {/* STATUS */}
           <div>
-            <label style={{ fontSize: 14, color: "#9ca3af" }}>
-              Status
-            </label>
+            <label style={{ fontSize: 14, color: "#9ca3af" }}>Status</label>
             <select
               value={form.status || "disponivel"}
               onChange={(e) => atualizar("status", e.target.value)}
-              style={styles.input}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 6,
+                border: "1px solid #374151",
+                background: "#111827",
+                color: "white",
+                outline: "none",
+                cursor: "pointer",
+              }}
             >
               <option value="disponivel">Disponível</option>
-              <option value="preparando">Preparando</option>
               <option value="vendido">Vendido</option>
+              <option value="preparando">Preparando</option>
             </select>
           </div>
 
-          <button onClick={salvarAlteracao} style={styles.save}>
+          <button
+            onClick={salvarAlteracao}
+            style={{
+              padding: 12,
+              background: "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
             💾 Salvar alterações
           </button>
 
@@ -239,74 +324,3 @@ export default function EditarCarro() {
     </main>
   );
 }
-
-/* estilos */
-const styles: any = {
-  input: {
-    width: "100%",
-    padding: 10,
-    borderRadius: 6,
-    border: "1px solid #374151",
-    background: "#111827",
-    color: "white",
-  },
-  textarea: {
-    width: "100%",
-    padding: 10,
-    borderRadius: 6,
-    border: "1px solid #374151",
-    background: "#111827",
-    color: "white",
-    minHeight: 80,
-  },
-  upload: {
-    marginBottom: 20,
-    padding: 10,
-    background: "#3b82f6",
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  save: {
-    padding: 12,
-    background: "#3b82f6",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-  },
-  deleteBtn: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    background: "red",
-    color: "white",
-    border: "none",
-    borderRadius: "50%",
-    width: 20,
-    height: 20,
-    cursor: "pointer",
-  },
-};
-
-/* 🔥 CORREÇÃO DO ERRO AQUI */
-const arrowLeft = {
-  position: "absolute",
-  left: 10,
-  top: "50%",
-  transform: "translateY(-50%)",
-  background: "rgba(0,0,0,0.6)",
-  color: "white",
-  border: "none",
-  borderRadius: "50%",
-  width: 45,
-  height: 45,
-  cursor: "pointer",
-};
-
-const arrowRight = {
-  ...arrowLeft,
-  left: "auto",
-  right: 10,
-};

@@ -1,8 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../data/useCarros";
+import { formatarPreco } from "@/data/formatarPreco";
 
 export default function DetalheCarro() {
   const { carros } = useCarros();
@@ -23,24 +24,23 @@ export default function DetalheCarro() {
   const [temCnh, setTemCnh] = useState(false);
   const [temTroca, setTemTroca] = useState(false);
 
-  const carrosselRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (carrosselRef.current) {
-      const container = carrosselRef.current;
-      const active = container.children[imagemAtual] as HTMLElement;
+    if (!scrollRef.current) return;
 
-      if (active) {
-        active.scrollIntoView({
-          behavior: "smooth",
-          inline: "center",
-          block: "nearest",
-        });
-      }
-    }
+    const itemWidth = 90;
+
+    scrollRef.current.scrollTo({
+      left: imagemAtual * itemWidth,
+      behavior: "smooth",
+    });
   }, [imagemAtual]);
 
   if (!carro) return <p style={{ color: "white" }}>Carro não encontrado</p>;
+
+  // 💰 PREÇO SEM CENTAVOS
+  {formatarPreco(carro.preco)}
 
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
@@ -49,36 +49,12 @@ export default function DetalheCarro() {
     return url.replace("watch?v=", "embed/");
   };
 
-  // 🔥 formata preço com R$
-  const precoFormatado =
-    typeof carro.preco === "string" && carro.preco.startsWith("R$")
-      ? carro.preco
-      : `R$ ${carro.preco}`;
-
   return (
-    <main
-      style={{
-        backgroundColor: "#0f172a",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 800, color: "white" }}>
+    <main style={mainStyle}>
+      <div style={container}>
+
         {/* VOLTAR */}
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            marginBottom: 20,
-            padding: "8px 12px",
-            background: "#374151",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={() => router.push("/")} style={backBtn}>
           ← Voltar
         </button>
 
@@ -87,12 +63,7 @@ export default function DetalheCarro() {
           <img
             src={carro.imagens?.[imagemAtual] || "/logo.png"}
             onClick={() => setFullscreen(true)}
-            style={{
-              width: "100%",
-              height: "40vh",
-              objectFit: "cover",
-              borderRadius: 10,
-            }}
+            style={mainImage}
           />
 
           <button
@@ -119,17 +90,8 @@ export default function DetalheCarro() {
         </div>
 
         {/* MINIATURAS + BOTÃO VIDEO */}
-        <div style={{ position: "relative", marginTop: 10 }}>
-          <div
-            ref={carrosselRef}
-            style={{
-              display: "flex",
-              gap: 10,
-              overflowX: "auto",
-              paddingRight: 110,
-              scrollBehavior: "smooth",
-            }}
-          >
+        <div style={thumbWrapper}>
+          <div ref={scrollRef} style={thumbScroll}>
             {carro.imagens?.map((img, index) => (
               <img
                 key={index}
@@ -152,58 +114,16 @@ export default function DetalheCarro() {
           </div>
 
           {carro.video && (
-            <div
-              onClick={() => setVideoOpen(true)}
-              style={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-                height: "100%",
-                width: 100,
-                background: "#000",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "1px solid #333",
-                zIndex: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 30,
-                  height: 20,
-                  background: "red",
-                  borderRadius: 4,
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    borderTop: "6px solid transparent",
-                    borderBottom: "6px solid transparent",
-                    borderLeft: "10px solid white",
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-40%, -50%)",
-                  }}
-                />
+            <div onClick={() => setVideoOpen(true)} style={videoBtn}>
+              <div style={playOuter}>
+                <div style={playIcon} />
               </div>
             </div>
           )}
         </div>
 
         {/* INFO */}
-        <div
-          style={{
-            background: "#111827",
-            padding: 20,
-            borderRadius: 10,
-            marginTop: 20,
-          }}
-        >
+        <div style={infoBox}>
           <h1 style={{ fontSize: 24, fontWeight: "bold" }}>{carro.nome}</h1>
 
           <p>Ano: {carro.ano}</p>
@@ -211,40 +131,26 @@ export default function DetalheCarro() {
           <p>Câmbio: {carro.cambio}</p>
           <p>Combustível: {carro.combustivel || "-"}</p>
 
+          {/* 💰 PREÇO FORMATADO SEM CENTAVOS */}
           <p style={{ fontSize: 22, color: "#3b82f6", fontWeight: "bold" }}>
-            {precoFormatado}
+            {formatarPreco(carro.preco)}
           </p>
 
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <a
-              href={linkWhatsapp}
-              target="_blank"
-              style={{
-                flex: 1,
-                textAlign: "center",
-                padding: 12,
-                background: "#16a34a",
-                color: "white",
-                borderRadius: 8,
-                fontWeight: "bold",
-                textDecoration: "none",
-              }}
-            >
-              WhatsApp
-            </a>
-          </div>
+          <p style={{ whiteSpace: "pre-wrap" }}>
+  {carro.descricao || "Sem descrição"}
+</p>
+
+          <a href={linkWhatsapp} target="_blank" style={whatsBtn}>
+            WhatsApp
+          </a>
 
           {/* SIMULAÇÃO */}
           <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
-            <p style={{ fontWeight: "bold" }}>
-              Simulação para {carro.nome} - {precoFormatado}
-            </p>
-
             <input
-              placeholder="Valor de entrada (R$)"
+              placeholder="Valor de entrada"
               value={entrada}
               onChange={(e) => setEntrada(e.target.value)}
-              style={inputStyle}
+              style={input}
             />
 
             <label>
@@ -253,7 +159,7 @@ export default function DetalheCarro() {
                 checked={temTroca}
                 onChange={() => setTemTroca(!temTroca)}
               />{" "}
-              Veículo na troca
+              Troca
             </label>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -262,12 +168,11 @@ export default function DetalheCarro() {
                   key={p}
                   onClick={() => setParcelas(p)}
                   style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    border: "none",
-                    cursor: "pointer",
+                    padding: 6,
                     background: parcelas === p ? "#16a34a" : "#374151",
                     color: "white",
+                    border: "none",
+                    borderRadius: 6,
                   }}
                 >
                   {p}x
@@ -279,14 +184,14 @@ export default function DetalheCarro() {
               placeholder="CPF"
               value={cpf}
               onChange={(e) => setCpf(e.target.value)}
-              style={inputStyle}
+              style={input}
             />
 
             <input
               type="date"
               value={nascimento}
               onChange={(e) => setNascimento(e.target.value)}
-              style={inputStyle}
+              style={input}
             />
 
             <label>
@@ -295,14 +200,15 @@ export default function DetalheCarro() {
                 checked={temCnh}
                 onChange={() => setTemCnh(!temCnh)}
               />{" "}
-              Possui CNH
+              CNH
             </label>
 
             <a
               href={`https://wa.me/5511981223969?text=${encodeURIComponent(
-                `Simulação do veículo: ${carro.nome}
-Preço: ${precoFormatado}
-Entrada: R$ ${entrada}
+                `Simulação:
+${carro.nome}
+Preço: ${formatarPreco(carro.preco)}
+Entrada: ${entrada}
 Parcelas: ${parcelas}x
 CPF: ${cpf}
 Nascimento: ${nascimento}
@@ -310,17 +216,9 @@ CNH: ${temCnh ? "Sim" : "Não"}
 Troca: ${temTroca ? "Sim" : "Não"}`
               )}`}
               target="_blank"
-              style={{
-                padding: 12,
-                background: "#16a34a",
-                borderRadius: 8,
-                color: "white",
-                fontWeight: "bold",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
+              style={whatsBtn}
             >
-              Enviar simulação no WhatsApp
+              Enviar simulação
             </a>
           </div>
         </div>
@@ -358,13 +256,109 @@ Troca: ${temTroca ? "Sim" : "Não"}`
   );
 }
 
-/* STYLES */
-const inputStyle = {
+/* ================= STYLES ================= */
+
+const mainStyle = {
+  backgroundColor: "#0f172a",
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  padding: 20,
+};
+
+const container = {
+  width: "100%",
+  maxWidth: 800,
+  color: "white",
+};
+
+const backBtn = {
+  marginBottom: 20,
+  padding: "8px 12px",
+  background: "#374151",
+  border: "none",
+  borderRadius: 6,
+  color: "white",
+};
+
+const mainImage = {
+  width: "100%",
+  height: "40vh",
+  objectFit: "cover",
+  borderRadius: 10,
+};
+
+const thumbWrapper = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  marginTop: 10,
+};
+
+const thumbScroll = {
+  display: "flex",
+  gap: 10,
+  overflowX: "auto",
+  flex: 1,
+};
+
+const videoBtn = {
+  minWidth: 130,
+  height: 75,
+  background: "#000",
+  borderRadius: 6,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
+const playOuter = {
+  width: 30,
+  height: 20,
+  background: "red",
+  borderRadius: 4,
+  position: "relative",
+};
+
+const playIcon = {
+  width: 0,
+  height: 0,
+  borderTop: "6px solid transparent",
+  borderBottom: "6px solid transparent",
+  borderLeft: "10px solid white",
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-40%, -50%)",
+};
+
+const infoBox = {
+  background: "#111827",
+  padding: 20,
+  borderRadius: 10,
+  marginTop: 20,
+};
+
+const input = {
   padding: 10,
   borderRadius: 6,
   border: "1px solid #374151",
   background: "#111827",
   color: "white",
+};
+
+const whatsBtn = {
+  display: "block",
+  marginTop: 10,
+  padding: 12,
+  background: "#16a34a",
+  color: "white",
+  textAlign: "center",
+  borderRadius: 8,
+  textDecoration: "none",
+  fontWeight: "bold",
 };
 
 const arrowLeft = {
@@ -378,7 +372,6 @@ const arrowLeft = {
   borderRadius: "50%",
   width: 40,
   height: 40,
-  cursor: "pointer",
 };
 
 const arrowRight = {
@@ -407,11 +400,9 @@ const modal = {
 
 const closeBtn = {
   background: "red",
-  color: "white",
   border: "none",
   borderRadius: "50%",
   width: 30,
   height: 30,
-  marginBottom: 10,
-  cursor: "pointer",
+  color: "white",
 };

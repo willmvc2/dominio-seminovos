@@ -1,60 +1,50 @@
 "use client";
 
+import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
 import { useCarros } from "../data/useCarros";
 import { useEffect } from "react";
+import { formatarPreco } from "@/data/formatarPreco";
 
 export default function Home() {
   const router = useRouter();
   const { carros } = useCarros();
 
-  // 🔥 força atualização quando salvar no admin
+  // 🔥 atualiza quando salva no admin
   useEffect(() => {
     const atualizar = () => {
       window.location.reload();
     };
 
     window.addEventListener("carros-updated", atualizar);
-
-    return () => {
-      window.removeEventListener("carros-updated", atualizar);
-    };
+    return () => window.removeEventListener("carros-updated", atualizar);
   }, []);
 
-  // 🔥 RESTAURA SCROLL (CORRIGIDO)
+  // 🔥 restaura scroll
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const scroll = sessionStorage.getItem("scrollY");
+    const scroll = sessionStorage.getItem("scrollY");
 
-      if (scroll) {
-        setTimeout(() => {
-          window.scrollTo(0, Number(scroll));
-        }, 100);
+    if (scroll) {
+      setTimeout(() => {
+        window.scrollTo(0, Number(scroll));
+      }, 100);
 
-        sessionStorage.removeItem("scrollY");
-      }
+      sessionStorage.removeItem("scrollY");
     }
   }, []);
 
-  // 🔥 PRIORIDADE DE STATUS
+  // 🔥 prioridade status
   const prioridade: any = {
     disponivel: 1,
     preparando: 2,
     vendido: 3,
   };
 
-  // 🔥 ORDENAÇÃO AUTOMÁTICA
   const carrosOrdenados = [...carros].sort((a, b) => {
-    const statusA = a.status || "disponivel";
-    const statusB = b.status || "disponivel";
+    const pA = prioridade[a.status || "disponivel"] || 99;
+    const pB = prioridade[b.status || "disponivel"] || 99;
 
-    const pA = prioridade[statusA] || 99;
-    const pB = prioridade[statusB] || 99;
-
-    if (pA !== pB) {
-      return pA - pB;
-    }
-
+    if (pA !== pB) return pA - pB;
     return b.id - a.id;
   });
 
@@ -72,10 +62,11 @@ export default function Home() {
         backgroundColor: "#0f172a",
         minHeight: "100vh",
         display: "flex",
-        justifyContent: "center",
+        flexDirection: "column", // 🔥 CORREÇÃO IMPORTANTE
       }}
     >
-      <div style={{ width: "100%", maxWidth: 1200 }}>
+      {/* CONTEÚDO PRINCIPAL */}
+      <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1 }}>
 
         {/* TOPO */}
         <div style={{ backgroundColor: "black", width: "100%" }}>
@@ -89,14 +80,7 @@ export default function Home() {
               justifyContent: "space-between",
             }}
           >
-            <img
-              src="/logo.png"
-              style={{
-                height: 100,
-                width: 300,
-                objectFit: "fill",
-              }}
-            />
+            
           </div>
         </div>
 
@@ -128,7 +112,7 @@ export default function Home() {
                   boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
                 }}
               >
-                {/* FAIXA STATUS */}
+                {/* STATUS */}
                 <div
                   style={{
                     position: "absolute",
@@ -148,9 +132,6 @@ export default function Home() {
                         : "#16a34a",
                     zIndex: 10,
                     fontSize: 13,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
                   }}
                 >
                   {status.toUpperCase()}
@@ -161,12 +142,10 @@ export default function Home() {
                   onClick={() => {
                     if (isVendido) return;
 
-                    if (typeof window !== "undefined") {
-                      sessionStorage.setItem(
-                        "scrollY",
-                        window.scrollY.toString()
-                      );
-                    }
+                    sessionStorage.setItem(
+                      "scrollY",
+                      window.scrollY.toString()
+                    );
 
                     router.push(`/carro/${car.id}`);
                   }}
@@ -193,7 +172,6 @@ export default function Home() {
                       {car.ano} • {car.cambio}
                     </p>
 
-                    {/* 🔥 PREÇO FORMATADO */}
                     {status !== "vendido" && (
                       <p
                         style={{
@@ -202,12 +180,7 @@ export default function Home() {
                           marginTop: 5,
                         }}
                       >
-                        {Number(car.preco).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        })}
+                        {formatarPreco(car.preco)}
                       </p>
                     )}
 
@@ -256,6 +229,9 @@ export default function Home() {
         `}</style>
 
       </div>
+
+      {/* 🔥 FOOTER (CORRETO AGORA) */}
+      <Footer />
     </main>
   );
 }
