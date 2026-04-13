@@ -13,18 +13,11 @@ export default function DetalheCarro() {
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
 
-  // ✅ PROTEÇÃO DAS IMAGENS (corrigido)
-const imagens = carro?.imagens || [];
+  // ✅ IMAGENS (CORRETO E LIMPO)
+  const imagens = Array.isArray(carro?.imagens)
+    ? carro.imagens
+    : [];
 
-  // tentar converter string para array
-  try {
-    const parsed = JSON.parse(carro.imagens);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-})();
-  
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -49,7 +42,9 @@ const imagens = carro?.imagens || [];
     });
   }, [imagemAtual]);
 
-  if (!carro) return <p style={{ color: "white" }}>Carro não encontrado</p>;
+  if (!carro) {
+    return <p style={{ color: "white" }}>Carro não encontrado</p>;
+  }
 
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
@@ -77,10 +72,9 @@ const imagens = carro?.imagens || [];
 
           <button
             onClick={() =>
-              setImagemAtual((prev) => {
-  if (!imagens.length) return 0;
-  return prev - 1 < 0 ? imagens.length - 1 : prev - 1;
-})
+              setImagemAtual((prev) =>
+                prev - 1 < 0 ? imagens.length - 1 : prev - 1
+              )
             }
             style={arrowLeft}
           >
@@ -88,19 +82,22 @@ const imagens = carro?.imagens || [];
           </button>
 
           <button
-  onClick={() =>
-    setImagemAtual((prev) => {
-      if (!imagens.length) return 0;
-      return prev + 1 >= imagens.length ? 0 : prev + 1;
-    })
-  }
-  style={arrowRight}
->
+            onClick={() =>
+              setImagemAtual((prev) =>
+                !imagens.length
+                  ? 0
+                  : prev + 1 >= imagens.length
+                  ? 0
+                  : prev + 1
+              )
+            }
+            style={arrowRight}
+          >
             ›
           </button>
         </div>
 
-        {/* MINIATURAS + BOTÃO VIDEO */}
+        {/* MINIATURAS */}
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
             {imagens.map((img, index) => (
