@@ -7,10 +7,12 @@ export function useCarros() {
   const [carros, setCarros] = useState<any[]>([]);
 
   async function carregar() {
-    const { data, error } = await supabase
-      .from("carros")
-      .select("*")
-      .order("id", { ascending: false });
+    const response = await supabase
+  .from("carros")
+  .select("*")
+  .order("id", { ascending: false });
+
+console.log("RESPONSE:", response);
 
     if (error) {
       console.error("Erro ao buscar carros:", error);
