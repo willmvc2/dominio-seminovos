@@ -161,7 +161,11 @@ export default function Admin() {
                   style={{ cursor: "pointer" }}
                 >
                   <img
-                    src={car.imagens?.[0] || "/logo.png"}
+  src={
+    Array.isArray(car.imagens) && car.imagens.length > 0
+      ? car.imagens[0]
+      : "/logo.png"
+  }
                     style={{
                       width: "100%",
                       height: 180,

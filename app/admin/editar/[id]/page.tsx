@@ -21,7 +21,7 @@ export default function EditarCarro() {
     if (carro) {
       setForm({
         ...carro,
-        imagens: carro.imagens || [],
+        imagens: Array.isArray(carro.imagens) ? carro.imagens : [],
       });
     }
   }, [carro]);
@@ -156,7 +156,7 @@ export default function EditarCarro() {
 
         {/* MINIATURAS */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-          {form.imagens.map((img: string, index: number) => (
+          {(Array.isArray(form.imagens) ? form.imagens : []).map((img: string, index: number) => (
             <div key={index} style={{ position: "relative" }}>
               <img
                 src={img}

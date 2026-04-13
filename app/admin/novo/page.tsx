@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCarros } from "../../../data/useCarros";
+import { supabase } from "@/app/lib/supabase";
 
 export default function NovoCarro() {
   const router = useRouter();
@@ -22,12 +23,32 @@ export default function NovoCarro() {
 
   const [imagens, setImagens] = useState<string[]>([]);
 
-  function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
+  // ✅ UPLOAD REAL PARA SUPABASE
+  async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
-    const novas = Array.from(files).map((f) => URL.createObjectURL(f));
-    setImagens((prev) => [...prev, ...novas]);
+    const urls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const nomeArquivo = `${Date.now()}-${file.name}`;
+
+      const { error } = await supabase.storage
+        .from("carros")
+        .upload(nomeArquivo, file);
+
+      if (error) {
+        alert("Erro ao enviar imagem");
+        console.log(error);
+        return;
+      }
+
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/carros/${nomeArquivo}`;
+
+      urls.push(url);
+    }
+
+    setImagens((prev) => [...prev, ...urls]);
   }
 
   function excluirImagem(index: number) {
@@ -39,7 +60,6 @@ export default function NovoCarro() {
     }
   }
 
-  // ✅ FUNÇÃO CORRIGIDA
   function salvarCarro() {
     if (!nome || !preco) {
       alert("Preencha pelo menos nome e preço");
@@ -47,23 +67,21 @@ export default function NovoCarro() {
     }
 
     const novo = {
-      id: Date.now(),
-      nome,
-      ano,
-      km,
-      cambio,
-      combustivel,
-      preco,
-      descricao,
-      video,
-      imagens,
-    };
+  nome,
+  ano,
+  km,
+  cambio,
+  combustivel,
+  preco,
+  descricao,
+  video,
+  imagens,
+  status: "disponivel", // 👈 ADICIONA ISSO
+};
 
-    // 🔥 salva corretamente no localStorage + state global
-    salvar([...carros, novo]);
+    salvar(novo);
 
-    // 🔥 volta pra home
-    router.push("/");
+    router.push("/admin");
   }
 
   return (
@@ -76,45 +94,41 @@ export default function NovoCarro() {
 
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
-  <img
-    src={
-      imagens[imagemAtual] ||
-      "https://via.placeholder.com/800x400"
-    }
-    onClick={() => {
-      if (imagens.length === 0) {
-        document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
-      } else {
-        setFullscreen(true);
-      }
-    }}
-    style={styles.mainImage}
-  />
+          <img
+            src={imagens[imagemAtual] || "/logo.png"}
+            onClick={() => {
+              if (imagens.length === 0) {
+                document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+              } else {
+                setFullscreen(true);
+              }
+            }}
+            style={styles.mainImage}
+          />
 
-  {/* TEXTO CENTRAL */}
-  {imagens.length === 0 && (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 18,
-        background: "rgba(0,0,0,0.4)",
-        borderRadius: 10,
-        cursor: "pointer",
-      }}
-      onClick={() =>
-        document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
-      }
-    >
-      📸 Inserir fotos
-    </div>
-  )}
-</div>
+          {imagens.length === 0 && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontWeight: "bold",
+                fontSize: 18,
+                background: "rgba(0,0,0,0.4)",
+                borderRadius: 10,
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+              }
+            >
+              📸 Inserir fotos
+            </div>
+          )}
+        </div>
 
         {/* MINIATURAS */}
         <div style={styles.thumbs}>
@@ -178,6 +192,7 @@ export default function NovoCarro() {
 }
 
 /* STYLES */
+
 const styles: any = {
   main: { background: "#0f172a", minHeight: "100vh", padding: 20 },
   container: { maxWidth: 900, margin: "0 auto", color: "white" },

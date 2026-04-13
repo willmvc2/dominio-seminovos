@@ -13,6 +13,24 @@ export default function DetalheCarro() {
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
 
+  // ✅ PROTEÇÃO DAS IMAGENS (corrigido)
+const imagens = (() => {
+  if (!carro?.imagens) return [];
+
+  // já é array
+  if (Array.isArray(carro.imagens)) {
+    return carro.imagens;
+  }
+
+  // tentar converter string para array
+  try {
+    const parsed = JSON.parse(carro.imagens);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+})();
+  
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -39,9 +57,6 @@ export default function DetalheCarro() {
 
   if (!carro) return <p style={{ color: "white" }}>Carro não encontrado</p>;
 
-  // 💰 PREÇO SEM CENTAVOS
-  {formatarPreco(carro.preco)}
-
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
   const getEmbedUrl = (url: string) => {
@@ -61,16 +76,17 @@ export default function DetalheCarro() {
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
-            src={carro.imagens?.[imagemAtual] || "/logo.png"}
+            src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => setFullscreen(true)}
             style={mainImage}
           />
 
           <button
             onClick={() =>
-              setImagemAtual((prev) =>
-                prev - 1 < 0 ? carro.imagens.length - 1 : prev - 1
-              )
+              setImagemAtual((prev) => {
+  if (!imagens.length) return 0;
+  return prev - 1 < 0 ? imagens.length - 1 : prev - 1;
+})
             }
             style={arrowLeft}
           >
@@ -79,10 +95,10 @@ export default function DetalheCarro() {
 
           <button
             onClick={() =>
-              setImagemAtual((prev) =>
-                prev + 1 >= carro.imagens.length ? 0 : prev + 1
-              )
-            }
+              setImagemAtual((prev) => {
+  if (!imagens.length) return 0;
+  return prev + 1 >= imagens.length ? 0 : prev + 1;
+})
             style={arrowRight}
           >
             ›
@@ -92,7 +108,7 @@ export default function DetalheCarro() {
         {/* MINIATURAS + BOTÃO VIDEO */}
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
-            {carro.imagens?.map((img, index) => (
+            {imagens.map((img, index) => (
               <img
                 key={index}
                 src={img}
@@ -131,14 +147,13 @@ export default function DetalheCarro() {
           <p>Câmbio: {carro.cambio}</p>
           <p>Combustível: {carro.combustivel || "-"}</p>
 
-          {/* 💰 PREÇO FORMATADO SEM CENTAVOS */}
           <p style={{ fontSize: 22, color: "#3b82f6", fontWeight: "bold" }}>
             {formatarPreco(carro.preco)}
           </p>
 
           <p style={{ whiteSpace: "pre-wrap" }}>
-  {carro.descricao || "Sem descrição"}
-</p>
+            {carro.descricao || "Sem descrição"}
+          </p>
 
           <a href={linkWhatsapp} target="_blank" style={whatsBtn}>
             WhatsApp
@@ -246,7 +261,7 @@ Troca: ${temTroca ? "Sim" : "Não"}`
         {fullscreen && (
           <div onClick={() => setFullscreen(false)} style={overlay}>
             <img
-              src={carro.imagens?.[imagemAtual]}
+              src={imagens[imagemAtual] || "/logo.png"}
               style={{ maxWidth: "95%", maxHeight: "95%" }}
             />
           </div>

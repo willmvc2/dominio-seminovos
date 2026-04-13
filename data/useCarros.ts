@@ -1,46 +1,82 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "../app/lib/supabase";
 
 export function useCarros() {
   const [carros, setCarros] = useState<any[]>([]);
 
-  function carregar() {
-    const data = JSON.parse(localStorage.getItem("carros") || "[]");
-    setCarros(data);
+  async function carregar() {
+    const { data, error } = await supabase
+      .from("carros")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao buscar carros:", error);
+      return;
+    }
+
+    setCarros(
+      (data || []).map((car) => {
+        let imagens: string[] = [];
+
+        if (Array.isArray(car.imagens)) {
+          imagens = car.imagens;
+        } else if (typeof car.imagens === "string") {
+          try {
+            const parsed = JSON.parse(car.imagens);
+            imagens = Array.isArray(parsed) ? parsed : [];
+          } catch {
+            imagens = [];
+          }
+        }
+
+        return {
+          ...car,
+          imagens,
+        };
+      })
+    );
   }
 
   useEffect(() => {
     carregar();
-
-    const atualizar = () => carregar();
-
-    window.addEventListener("carros-updated", atualizar);
-    window.addEventListener("storage", atualizar);
-
-    return () => {
-      window.removeEventListener("carros-updated", atualizar);
-      window.removeEventListener("storage", atualizar);
-    };
   }, []);
 
-  function salvar(novos: any[]) {
-    setCarros(novos);
-    localStorage.setItem("carros", JSON.stringify(novos));
-    window.dispatchEvent(new Event("carros-updated"));
+  async function salvar(novo: any) {
+    const payload = {
+      ...novo,
+      imagens: Array.isArray(novo.imagens) ? novo.imagens : [],
+    };
+
+    const { data, error } = await supabase
+      .from("carros")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao salvar:", error);
+      return;
+    }
+
+    setCarros((prev) => [data, ...prev]);
   }
 
-  function excluir(id: number) {
-  const atual = JSON.parse(localStorage.getItem("carros") || "[]");
+  async function excluir(id: number) {
+    const { error } = await supabase
+      .from("carros")
+      .delete()
+      .eq("id", id);
 
-  const filtrados = atual.filter((c: any) => c.id !== id);
+    if (error) {
+      console.error("Erro ao excluir:", error);
+      return;
+    }
 
-  localStorage.setItem("carros", JSON.stringify(filtrados));
-
-  setCarros(filtrados);
-
-  window.dispatchEvent(new Event("carros-updated"));
-}
+    setCarros((prev) => prev.filter((c) => c.id !== id));
+  }
 
   return { carros, salvar, excluir };
 }

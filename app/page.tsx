@@ -13,7 +13,7 @@ export default function Home() {
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
     const atualizar = () => {
-      window.location.reload();
+  
     };
 
     window.addEventListener("carros-updated", atualizar);
@@ -155,7 +155,13 @@ export default function Home() {
                   }}
                 >
                   <img
-                    src={car.imagens?.[0] || "/logo.png"}
+                    src={
+  Array.isArray(car.imagens)
+    ? car.imagens[0]
+    : typeof car.imagens === "string"
+    ? JSON.parse(car.imagens)[0]
+    : "/logo.png"
+}
                     style={{
                       width: "100%",
                       height: 180,
