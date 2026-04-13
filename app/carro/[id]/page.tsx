@@ -14,13 +14,7 @@ export default function DetalheCarro() {
   const carro = carros.find((c) => c.id === id);
 
   // ✅ PROTEÇÃO DAS IMAGENS (corrigido)
-const imagens = (() => {
-  if (!carro?.imagens) return [];
-
-  // já é array
-  if (Array.isArray(carro.imagens)) {
-    return carro.imagens;
-  }
+const imagens = carro?.imagens || [];
 
   // tentar converter string para array
   try {
@@ -94,13 +88,14 @@ const imagens = (() => {
           </button>
 
           <button
-            onClick={() =>
-              setImagemAtual((prev) => {
-  if (!imagens.length) return 0;
-  return prev + 1 >= imagens.length ? 0 : prev + 1;
-})
-            style={arrowRight}
-          >
+  onClick={() =>
+    setImagemAtual((prev) => {
+      if (!imagens.length) return 0;
+      return prev + 1 >= imagens.length ? 0 : prev + 1;
+    })
+  }
+  style={arrowRight}
+>
             ›
           </button>
         </div>
