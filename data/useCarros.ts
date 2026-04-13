@@ -18,21 +18,20 @@ export function useCarros() {
     }
 
     setCarros(
-      (data || []).map((car) => {
-        let imagens: string[] = [];
+  (data || []).map((car) => {
+    let imagens: string[] = [];
 
-        if (Array.isArray(car.imagens)) {
-          imagens = car.imagens;
-        } else if (typeof car.imagens === "string") {
-          try {
-            const parsed = JSON.parse(car.imagens);
-            imagens = Array.isArray(parsed) ? parsed : [];
-          } catch {
-            imagens = [];
-          }
-        }
+    if (Array.isArray(car.imagens)) {
+      imagens = car.imagens;
+    } else {
+      try {
+        imagens = JSON.parse(car.imagens || "[]");
+      } catch {
+        imagens = [];
+      }
+    }
 
-        return {
+    return {
           ...car,
           imagens,
         };
