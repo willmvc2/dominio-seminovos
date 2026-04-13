@@ -7,7 +7,7 @@ import { supabase } from "@/app/lib/supabase";
 
 export default function NovoCarro() {
   const router = useRouter();
-  const { carros, salvar } = useCarros();
+  const { salvar } = useCarros();
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -23,7 +23,7 @@ export default function NovoCarro() {
 
   const [imagens, setImagens] = useState<string[]>([]);
 
-  // ✅ UPLOAD REAL PARA SUPABASE
+  // UPLOAD SUPABASE STORAGE
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
@@ -38,12 +38,12 @@ export default function NovoCarro() {
         .upload(nomeArquivo, file);
 
       if (error) {
-        alert("Erro ao enviar imagem");
         console.log(error);
+        alert("Erro ao enviar imagem");
         return;
       }
 
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/carros/${nomeArquivo}`;
+      const url = `https://fkzpdcekozcncsnwyblp.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
 
       urls.push(url);
     }
@@ -60,26 +60,27 @@ export default function NovoCarro() {
     }
   }
 
-  function salvarCarro() {
+  // SALVAR CARRO (CORRIGIDO)
+  async function salvarCarro() {
     if (!nome || !preco) {
       alert("Preencha pelo menos nome e preço");
       return;
     }
 
     const novo = {
-  nome,
-  ano,
-  km,
-  cambio,
-  combustivel,
-  preco,
-  descricao,
-  video,
-  imagens,
-  status: "disponivel", // 👈 ADICIONA ISSO
-};
+      nome,
+      ano,
+      km,
+      cambio,
+      combustivel,
+      preco,
+      descricao,
+      video,
+      imagens,
+      status: "disponivel",
+    };
 
-    salvar(novo);
+    await salvar(novo);
 
     router.push("/admin");
   }
@@ -181,7 +182,6 @@ export default function NovoCarro() {
         </div>
       </div>
 
-      {/* FULLSCREEN */}
       {fullscreen && (
         <div onClick={() => setFullscreen(false)} style={styles.fullscreen}>
           <img src={imagens[imagemAtual]} style={styles.fullImg} />
@@ -192,7 +192,6 @@ export default function NovoCarro() {
 }
 
 /* STYLES */
-
 const styles: any = {
   main: { background: "#0f172a", minHeight: "100vh", padding: 20 },
   container: { maxWidth: 900, margin: "0 auto", color: "white" },

@@ -44,24 +44,25 @@ export function useCarros() {
   }, []);
 
   async function salvar(novo: any) {
-    const payload = {
-      ...novo,
-      imagens: Array.isArray(novo.imagens) ? novo.imagens : [],
-    };
+  const payload = {
+    ...novo,
+    imagens: Array.isArray(novo.imagens) ? novo.imagens : [],
+  };
 
-    const { data, error } = await supabase
-      .from("carros")
-      .insert([payload])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from("carros")
+    .insert([payload])
+    .select()
+    .single();
 
-    if (error) {
-      console.error("Erro ao salvar:", error);
-      return;
-    }
-
-    setCarros((prev) => [data, ...prev]);
+  if (error) {
+    console.error("❌ ERRO SUPABASE:", error);
+    alert("Erro ao salvar: " + error.message);
+    return;
   }
+
+  setCarros((prev) => [data, ...prev]);
+}
 
   async function excluir(id: number) {
     const { error } = await supabase
