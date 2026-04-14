@@ -1,118 +1,243 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
+import { useCarros } from "../data/useCarros";
+import { useEffect } from "react";
+import { formatarPreco } from "@/data/formatarPreco";
 
-// 🔥 SUPABASE CLIENT (TESTE)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export default function Teste() {
+export default function Home() {
   const router = useRouter();
+  const { carros } = useCarros();
 
-  const [carros, setCarros] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 🔥 atualiza quando salva no admin
+  useEffect(() => {
+    const atualizar = () => {
+  
+    };
 
-  // 🔥 BUSCAR CARROS
-  const fetchCarros = async () => {
-    setLoading(true);
+    window.addEventListener("carros-updated", atualizar);
+    return () => window.removeEventListener("carros-updated", atualizar);
+  }, []);
 
-    const { data, error } = await supabase
-      .from("carros")
-      .select("*")
-      .order("id", { ascending: false });
+  // 🔥 restaura scroll
+  useEffect(() => {
+    const scroll = sessionStorage.getItem("scrollY");
 
-    if (error) {
-      console.log("Erro ao buscar:", error.message);
-    } else {
-      setCarros(data || []);
+    if (scroll) {
+      setTimeout(() => {
+        window.scrollTo(0, Number(scroll));
+      }, 100);
+
+      sessionStorage.removeItem("scrollY");
     }
+  }, []);
 
-    setLoading(false);
+  // 🔥 prioridade status
+  const prioridade: any = {
+    disponivel: 1,
+    preparando: 2,
+    vendido: 3,
   };
 
-  // 🔥 SALVAR CARRO TESTE
-  const adicionarCarro = async () => {
-    const novoCarro = {
-  nome: "Carro teste",
-  ano: "2024",
-  km: "0",
-  cambio: "Automático",
-  combustivel: "Flex",
-  preco: "50000",
-  descricao: "Carro teste",
-  video: "",
-  imagens: ["/logo.png"],
-  status: "disponivel",
-};
+  const carrosOrdenados = [...carros].sort((a, b) => {
+    const pA = prioridade[a.status || "disponivel"] || 99;
+    const pB = prioridade[b.status || "disponivel"] || 99;
 
-    const { error } = await supabase
-      .from("carros")
-      .insert([novoCarro]);
+    if (pA !== pB) return pA - pB;
+    return b.id - a.id;
+  });
 
-    if (error) {
-  console.log("Erro ao buscar:", error.message);
-} else {
-  console.log("🔥 DADOS DO SUPABASE:", data); // 👈 AQUI
-  setCarros(data || []);
-};
-
-  useEffect(() => {
-    fetchCarros();
-  }, []);
+  if (!carros?.length) {
+    return (
+      <main style={{ color: "white", padding: 20 }}>
+        Nenhum veículo cadastrado
+      </main>
+    );
+  }
 
   return (
     <main
       style={{
-        background: "#0f172a",
+        backgroundColor: "#0f172a",
         minHeight: "100vh",
-        padding: 20,
-        color: "white",
+        display: "flex",
+        flexDirection: "column", // 🔥 CORREÇÃO IMPORTANTE
       }}
     >
-      <h1>🔥 TESTE SUPABASE</h1>
+      {/* CONTEÚDO PRINCIPAL */}
+      <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1 }}>
 
-      <button
-        onClick={adicionarCarro}
-        style={{
-          padding: 10,
-          marginTop: 20,
-          background: "#16a34a",
-          border: "none",
-          borderRadius: 8,
-          color: "white",
-          cursor: "pointer",
-        }}
-      >
-        + Adicionar carro no Supabase
-      </button>
-
-      <hr style={{ margin: "20px 0" }} />
-
-      {loading ? (
-        <p>Carregando...</p>
-      ) : carros.length === 0 ? (
-        <p>Nenhum carro encontrado</p>
-      ) : (
-        carros.map((car) => (
+        {/* TOPO */}
+        <div style={{ backgroundColor: "black", width: "100%" }}>
           <div
-            key={car.id}
             style={{
-              padding: 10,
-              marginBottom: 10,
-              background: "#111827",
-              borderRadius: 8,
+              maxWidth: 1100,
+              margin: "0 auto",
+              padding: "15px 10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <h3>{car.nome}</h3>
-            <p>{car.ano} • {car.cambio}</p>
-            <p>R$ {car.preco}</p>
+            
           </div>
-        ))
-      )}
+        </div>
+
+        {/* GRID */}
+        <div
+          className="grid"
+          style={{
+            maxWidth: 1100,
+            margin: "20px auto",
+            padding: 10,
+            display: "grid",
+            gap: 20,
+            gridTemplateColumns: "repeat(3, 1fr)",
+          }}
+        >
+          {carrosOrdenados.map((car) => {
+            const status = car.status || "disponivel";
+            const isVendido = status === "vendido";
+
+            return (
+              <div
+                key={car.id}
+                style={{
+                  position: "relative",
+                  background: "#111827",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  border: "1px solid #1f2937",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                }}
+              >
+                {/* STATUS */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 20,
+                    left: -60,
+                    transform: "rotate(-45deg)",
+                    width: 220,
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: "white",
+                    padding: "8px 0",
+                    background:
+                      status === "vendido"
+                        ? "#dc2626"
+                        : status === "preparando"
+                        ? "#374151"
+                        : "#16a34a",
+                    zIndex: 10,
+                    fontSize: 13,
+                  }}
+                >
+                  {status.toUpperCase()}
+                </div>
+
+                {/* CARD */}
+                <div
+                  onClick={() => {
+                    if (isVendido) return;
+
+                    sessionStorage.setItem(
+                      "scrollY",
+                      window.scrollY.toString()
+                    );
+
+                    router.push(`/carro/${car.id}`);
+                  }}
+                  style={{
+                    cursor: isVendido ? "not-allowed" : "pointer",
+                    opacity: isVendido ? 0.6 : 1,
+                  }}
+                >
+                  <img
+                    src={
+  Array.isArray(car.imagens)
+    ? car.imagens[0]
+    : typeof car.imagens === "string"
+    ? JSON.parse(car.imagens)[0]
+    : "/logo.png"
+}
+                    style={{
+                      width: "100%",
+                      height: 180,
+                      objectFit: "cover",
+                    }}
+                  />
+
+                  <div style={{ padding: 15 }}>
+                    <h2 style={{ color: "white", fontWeight: "bold" }}>
+                      {car.nome}
+                    </h2>
+
+                    <p style={{ color: "#9ca3af" }}>
+                      {car.ano} • {car.cambio}
+                    </p>
+
+                    {status !== "vendido" && (
+                      <p
+                        style={{
+                          color: "#3b82f6",
+                          fontWeight: "bold",
+                          marginTop: 5,
+                        }}
+                      >
+                        {formatarPreco(car.preco)}
+                      </p>
+                    )}
+
+                    <button
+                      disabled={isVendido}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isVendido) return;
+                        router.push(`/carro/${car.id}`);
+                      }}
+                      style={{
+                        marginTop: 10,
+                        width: "100%",
+                        padding: 8,
+                        background: "transparent",
+                        border: "1px solid #3b82f6",
+                        color: "#3b82f6",
+                        borderRadius: 6,
+                        cursor: isVendido ? "not-allowed" : "pointer",
+                        fontWeight: "bold",
+                        opacity: isVendido ? 0.5 : 1,
+                      }}
+                    >
+                      Ver detalhes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* RESPONSIVO */}
+        <style jsx>{`
+          @media (max-width: 900px) {
+            .grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .grid {
+              grid-template-columns: 1fr !important;
+            }
+          }
+        `}</style>
+
+      </div>
+
+      {/* 🔥 FOOTER (CORRETO AGORA) */}
+      <Footer />
     </main>
   );
 }
