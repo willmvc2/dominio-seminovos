@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter();
 
   // ✅ agora vem do hook corretamente
-  const { carros } = useCarros();
+  const { carros, recarregar } = useCarros();
 
   // fallback seguro (evita crash antes de carregar)
   const carrosSeguros = carros || [];

@@ -32,11 +32,46 @@ export default function NovoCarro() {
     const urls: string[] = [];
 
     for (const file of Array.from(files)) {
-      const nomeArquivo = `${Date.now()}-${file.name}`;
+      
+      import imageCompression from "browser-image-compression";
 
-      const { error } = await supabase.storage
-        .from("carros")
-        .upload(nomeArquivo, file);
+async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
+  const files = e.target.files;
+  if (!files) return;
+
+  const urls: string[] = [];
+
+  for (const file of Array.from(files)) {
+
+    // 🔥 COMPRESSÃO
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB: 1, // até 1MB
+      maxWidthOrHeight: 1280, // tamanho ideal
+      useWebWorker: true,
+    });
+
+    const nomeArquivo = `${Date.now()}.jpg`;
+
+    const { error } = await supabase.storage
+      .from("carros")
+      .upload(nomeArquivo, compressedFile);
+
+    if (error) {
+      alert("Erro ao enviar imagem");
+      console.log(error);
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("carros")
+      .getPublicUrl(nomeArquivo);
+
+    urls.push(data.publicUrl);
+  }
+
+  setImagens((prev) => [...prev, ...urls]);
+}
+      
 
       if (error) {
         alert("Erro ao enviar imagem");
