@@ -54,13 +54,11 @@ export default function Teste() {
       .insert([novoCarro]);
 
     if (error) {
-      alert("Erro ao salvar: " + error.message);
-      console.log(error);
-    } else {
-      alert("Carro salvo no Supabase!");
-      fetchCarros();
-    }
-  };
+  console.log("Erro ao buscar:", error.message);
+} else {
+  console.log("🔥 DADOS DO SUPABASE:", data); // 👈 AQUI
+  setCarros(data || []);
+};
 
   useEffect(() => {
     fetchCarros();
