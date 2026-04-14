@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCarros } from "../../../data/useCarros";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/lib/supabase";
+
 
 export default function NovoCarro() {
   const router = useRouter();
@@ -43,8 +44,11 @@ export default function NovoCarro() {
         return;
       }
 
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/carros/${nomeArquivo}`;
+      const { data } = supabase.storage
+  .from("carros")
+  .getPublicUrl(nomeArquivo);
 
+const url = data.publicUrl;
       urls.push(url);
     }
 
@@ -60,31 +64,46 @@ export default function NovoCarro() {
     }
   }
 
-  function salvarCarro() {
-    if (!nome || !preco) {
-      alert("Preencha pelo menos nome e preço");
-      return;
-    }
+  async function salvarCarro() {
+  console.log("🔥 CLIQUEI NO SALVAR");
 
-    const novo = {
-  nome,
-  ano,
-  km,
-  cambio,
-  combustivel,
-  preco,
-  descricao,
-  video,
-  imagens,
-  status: "disponivel", // 👈 ADICIONA ISSO
-};
+  const payload = {
+    nome,
+    ano,
+    km,
+    cambio,
+    combustivel,
+    video,
+    imagens,
+    status: "disponivel",
+    preco: Number(preco),
+    descricao,
+  };
 
-    salvar(novo);
+  console.log("📦 PAYLOAD:", payload);
 
-    router.push("/admin");
+  const { data, error, status, statusText } = await supabase
+    .from("carros")
+    .insert([payload])
+    .select();
+
+  console.log("📊 DATA:", data);
+  console.log("❌ ERROR:", error);
+  console.log("📡 STATUS:", status, statusText);
+
+  if (error) {
+    alert(error.message);
+    return;
   }
 
+ // 🔥 IMPORTANTE: esperar render do estado
+  setTimeout(() => {
+    router.push("/admin");
+  }, 200);
+}
+
   return (
+    
     <main style={styles.main}>
       <div style={styles.container}>
 

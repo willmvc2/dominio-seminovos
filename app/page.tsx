@@ -2,18 +2,23 @@
 
 import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useCarros } from "../data/useCarros";
-import { useEffect } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
 
 export default function Home() {
   const router = useRouter();
+
+  // ✅ agora vem do hook corretamente
   const { carros } = useCarros();
+
+  // fallback seguro (evita crash antes de carregar)
+  const carrosSeguros = carros || [];
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
     const atualizar = () => {
-  
+      window.location.reload(); // simples e funcional
     };
 
     window.addEventListener("carros-updated", atualizar);
@@ -40,15 +45,15 @@ export default function Home() {
     vendido: 3,
   };
 
-  const carrosOrdenados = [...carros].sort((a, b) => {
+  const carrosOrdenados = [...carrosSeguros].sort((a, b) => {
     const pA = prioridade[a.status || "disponivel"] || 99;
     const pB = prioridade[b.status || "disponivel"] || 99;
 
     if (pA !== pB) return pA - pB;
-    return b.id - a.id;
+    return (b.id || 0) - (a.id || 0);
   });
 
-  if (!carros?.length) {
+  if (!carrosSeguros.length) {
     return (
       <main style={{ color: "white", padding: 20 }}>
         Nenhum veículo cadastrado
@@ -62,28 +67,12 @@ export default function Home() {
         backgroundColor: "#0f172a",
         minHeight: "100vh",
         display: "flex",
-        flexDirection: "column", // 🔥 CORREÇÃO IMPORTANTE
+        flexDirection: "column",
       }}
     >
       {/* CONTEÚDO PRINCIPAL */}
       <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1 }}>
-
-        {/* TOPO */}
-        <div style={{ backgroundColor: "black", width: "100%" }}>
-          <div
-            style={{
-              maxWidth: 1100,
-              margin: "0 auto",
-              padding: "15px 10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            
-          </div>
-        </div>
-
+        
         {/* GRID */}
         <div
           className="grid"
@@ -156,12 +145,8 @@ export default function Home() {
                 >
                   <img
                     src={
-  Array.isArray(car.imagens)
-    ? car.imagens[0]
-    : typeof car.imagens === "string"
-    ? JSON.parse(car.imagens)[0]
-    : "/logo.png"
-}
+                      car.imagem_url || "/logo.png"
+                    }
                     style={{
                       width: "100%",
                       height: 180,
@@ -233,10 +218,8 @@ export default function Home() {
             }
           }
         `}</style>
-
       </div>
 
-      {/* 🔥 FOOTER (CORRETO AGORA) */}
       <Footer />
     </main>
   );

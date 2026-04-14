@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../../data/useCarros";
+import { supabase } from "@/lib/supabase";
 
 export default function EditarCarro() {
   const { carros, salvar } = useCarros();
@@ -47,15 +48,38 @@ export default function EditarCarro() {
     setImagemAtual(0);
   }
 
-  function salvarAlteracao() {
-    const novaLista = carros.map((c) =>
-      c.id === id ? form : c
-    );
+  async function salvarAlteracao() {
+  console.log("🔥 clicou salvar");
+  console.log("ID:", id);
+  console.log("FORM:", form);
 
-    salvar(novaLista);
-    alert("Salvo com sucesso!");
-    router.push("/admin");
+  const { data, error } = await supabase
+    .from("carros")
+    .update({
+      nome: form.nome,
+      ano: form.ano,
+      km: form.km,
+      cambio: form.cambio,
+      combustivel: form.combustivel,
+      preco: Number(form.preco),
+      descricao: form.descricao,
+      video: form.video,
+      imagens: form.imagens,
+      status: form.status,
+    })
+    .eq("id", id);
+
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+
+  if (error) {
+    alert(error.message);
+    return;
   }
+
+  alert("Salvo com sucesso!");
+  router.push("/admin");
+}
 
   if (!form) return <p style={{ color: "white" }}>Carregando...</p>;
 
