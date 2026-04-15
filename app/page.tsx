@@ -17,13 +17,13 @@ export default function Home() {
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
-    const atualizar = () => {
-      window.location.reload(); // simples e funcional
-    };
+  const atualizar = () => {
+    recarregar(); // 🔥 chama o supabase de novo
+  };
 
-    window.addEventListener("carros-updated", atualizar);
-    return () => window.removeEventListener("carros-updated", atualizar);
-  }, []);
+  window.addEventListener("carros-updated", atualizar);
+  return () => window.removeEventListener("carros-updated", atualizar);
+}, []);
 
   // 🔥 restaura scroll
   useEffect(() => {
@@ -145,7 +145,9 @@ export default function Home() {
                 >
                   <img
                     src={
-                      car.imagem_url || "/logo.png"
+                    Array.isArray(car.imagens) && car.imagens.length > 0
+                    ? car.imagens[0]
+                    : "/logo.png"
                     }
                     style={{
                       width: "100%",

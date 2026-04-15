@@ -4,6 +4,26 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useCarros } from "../../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
+import { supabase } from "@/lib/supabase";
+
+async function excluirCarro(id: number) {
+  const confirmacao = window.confirm("Tem certeza que deseja excluir?");
+  if (!confirmacao) return;
+
+  const { error } = await supabase
+    .from("carros")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("Carro excluído com sucesso");
+
+  window.location.reload(); // atualiza lista
+}
 
 export default function Admin() {
   const router = useRouter();
@@ -217,12 +237,8 @@ export default function Admin() {
   <button
     onClick={(e) => {
       e.stopPropagation();
-
-      const confirmar = confirm("Tem certeza que deseja excluir este veículo?");
-
-      if (confirmar) {
-        excluir(car.id);
-      }
+      excluirCarro(car.id);
+    
     }}
     style={{
       marginTop: 8,

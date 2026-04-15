@@ -13,24 +13,18 @@ export default function DetalheCarro() {
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
 
-  // ✅ PROTEÇÃO DAS IMAGENS (corrigido)
-const imagens = (() => {
-  if (!carro?.imagens) return [];
+  const imagens = (() => {
+    if (!carro?.imagens) return [];
+    if (Array.isArray(carro.imagens)) return carro.imagens;
 
-  // já é array
-  if (Array.isArray(carro.imagens)) {
-    return carro.imagens;
-  }
+    try {
+      const parsed = JSON.parse(carro.imagens);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
 
-  // tentar converter string para array
-  try {
-    const parsed = JSON.parse(carro.imagens);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-})();
-  
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -47,10 +41,8 @@ const imagens = (() => {
   useEffect(() => {
     if (!scrollRef.current) return;
 
-    const itemWidth = 90;
-
     scrollRef.current.scrollTo({
-      left: imagemAtual * itemWidth,
+      left: imagemAtual * 90,
       behavior: "smooth",
     });
   }, [imagemAtual]);
@@ -68,12 +60,10 @@ const imagens = (() => {
     <main style={mainStyle}>
       <div style={container}>
 
-        {/* VOLTAR */}
         <button onClick={() => router.push("/")} style={backBtn}>
           ← Voltar
         </button>
 
-        {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
             src={imagens[imagemAtual] || "/logo.png"}
@@ -81,31 +71,33 @@ const imagens = (() => {
             style={mainImage}
           />
 
+          {/* ESQUERDA */}
           <button
             onClick={() =>
               setImagemAtual((prev) => {
-  if (!imagens.length) return 0;
-  return prev - 1 < 0 ? imagens.length - 1 : prev - 1;
-})
+                if (!imagens.length) return 0;
+                return prev - 1 < 0 ? imagens.length - 1 : prev - 1;
+              })
             }
             style={arrowLeft}
           >
             ‹
           </button>
 
+          {/* DIREITA */}
           <button
             onClick={() =>
               setImagemAtual((prev) => {
-  if (!imagens.length) return 0;
-  return prev + 1 >= imagens.length ? 0 : prev + 1;
-})
+                if (!imagens.length) return 0;
+                return prev + 1 >= imagens.length ? 0 : prev + 1;
+              })
+            }
             style={arrowRight}
           >
             ›
           </button>
         </div>
 
-        {/* MINIATURAS + BOTÃO VIDEO */}
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
             {imagens.map((img, index) => (
@@ -138,7 +130,6 @@ const imagens = (() => {
           )}
         </div>
 
-        {/* INFO */}
         <div style={infoBox}>
           <h1 style={{ fontSize: 24, fontWeight: "bold" }}>{carro.nome}</h1>
 
@@ -159,7 +150,6 @@ const imagens = (() => {
             WhatsApp
           </a>
 
-          {/* SIMULAÇÃO */}
           <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
             <input
               placeholder="Valor de entrada"
@@ -173,8 +163,7 @@ const imagens = (() => {
                 type="checkbox"
                 checked={temTroca}
                 onChange={() => setTemTroca(!temTroca)}
-              />{" "}
-              Troca
+              /> Troca
             </label>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -214,8 +203,7 @@ const imagens = (() => {
                 type="checkbox"
                 checked={temCnh}
                 onChange={() => setTemCnh(!temCnh)}
-              />{" "}
-              CNH
+              /> CNH
             </label>
 
             <a
@@ -238,7 +226,6 @@ Troca: ${temTroca ? "Sim" : "Não"}`
           </div>
         </div>
 
-        {/* VIDEO MODAL */}
         {videoOpen && (
           <div onClick={() => setVideoOpen(false)} style={overlay}>
             <div onClick={(e) => e.stopPropagation()} style={modal}>
@@ -257,7 +244,6 @@ Troca: ${temTroca ? "Sim" : "Não"}`
           </div>
         )}
 
-        {/* FULLSCREEN */}
         {fullscreen && (
           <div onClick={() => setFullscreen(false)} style={overlay}>
             <img
@@ -271,7 +257,7 @@ Troca: ${temTroca ? "Sim" : "Não"}`
   );
 }
 
-/* ================= STYLES ================= */
+/* STYLES */
 
 const mainStyle = {
   backgroundColor: "#0f172a",

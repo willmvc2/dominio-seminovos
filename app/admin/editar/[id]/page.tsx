@@ -78,6 +78,7 @@ export default function EditarCarro() {
   }
 
   alert("Salvo com sucesso!");
+  window.dispatchEvent(new Event("carros-updated")); // 🔥 AQUI
   router.push("/admin");
 }
 

@@ -5,6 +5,39 @@ import { useState } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { supabase } from "@/lib/supabase";
 
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+
+      const maxWidth = 1200;
+      const scale = maxWidth / img.width;
+
+      canvas.width = maxWidth;
+      canvas.height = img.height * scale;
+
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+        },
+        "image/webp", // 🔥 agora WebP
+        0.8 // 🔥 qualidade 80%
+      );
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function NovoCarro() {
   const router = useRouter();
@@ -26,35 +59,20 @@ export default function NovoCarro() {
 
   // ✅ UPLOAD REAL PARA SUPABASE
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files) return;
-
-    const urls: string[] = [];
-
-    for (const file of Array.from(files)) {
-      
-      import imageCompression from "browser-image-compression";
-
-async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
   const files = e.target.files;
   if (!files) return;
 
   const urls: string[] = [];
 
   for (const file of Array.from(files)) {
+    // 🔥 comprime em WebP
+    const compressed = await compressImage(file);
 
-    // 🔥 COMPRESSÃO
-    const compressedFile = await imageCompression(file, {
-      maxSizeMB: 1, // até 1MB
-      maxWidthOrHeight: 1280, // tamanho ideal
-      useWebWorker: true,
-    });
-
-    const nomeArquivo = `${Date.now()}.jpg`;
+    const nomeArquivo = `${Date.now()}.webp`;
 
     const { error } = await supabase.storage
       .from("carros")
-      .upload(nomeArquivo, compressedFile);
+      .upload(nomeArquivo, compressed);
 
     if (error) {
       alert("Erro ao enviar imagem");
@@ -71,24 +89,6 @@ async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
 
   setImagens((prev) => [...prev, ...urls]);
 }
-      
-
-      if (error) {
-        alert("Erro ao enviar imagem");
-        console.log(error);
-        return;
-      }
-
-      const { data } = supabase.storage
-  .from("carros")
-  .getPublicUrl(nomeArquivo);
-
-const url = data.publicUrl;
-      urls.push(url);
-    }
-
-    setImagens((prev) => [...prev, ...urls]);
-  }
 
   function excluirImagem(index: number) {
     const novas = imagens.filter((_, i) => i !== index);
@@ -122,17 +122,17 @@ const url = data.publicUrl;
     .insert([payload])
     .select();
 
-  console.log("📊 DATA:", data);
-  console.log("❌ ERROR:", error);
-  console.log("📡 STATUS:", status, statusText);
+   console.log("📊 DATA:", data);
+   console.log("❌ ERROR:", error);
+   console.log("📡 STATUS:", status, statusText);
 
-  if (error) {
+   if (error) {
     alert(error.message);
     return;
-  }
-
- // 🔥 IMPORTANTE: esperar render do estado
-  setTimeout(() => {
+   }
+   window.dispatchEvent(new Event("carros-updated")); // 🔥 AQUI
+   // 🔥 IMPORTANTE: esperar render do estado
+   setTimeout(() => {
     router.push("/admin");
   }, 200);
 }
