@@ -237,7 +237,7 @@ export default function Admin() {
   <button
     onClick={(e) => {
       e.stopPropagation();
-      excluirCarro(car.id);
+      
     
     }}
     style={{
