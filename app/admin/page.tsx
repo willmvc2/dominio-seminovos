@@ -236,10 +236,9 @@ export default function Admin() {
   {/* BOTÃO EXCLUIR */}
   <button
     onClick={(e) => {
-      e.stopPropagation();
-      
-    
-    }}
+  e.stopPropagation();
+  excluirCarro(car.id);
+}}
     style={{
       marginTop: 8,
       width: "100%",
