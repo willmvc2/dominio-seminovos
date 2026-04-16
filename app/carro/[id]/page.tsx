@@ -51,10 +51,25 @@ export default function DetalheCarro() {
 
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
-  const getEmbedUrl = (url: string) => {
-    if (!url) return "";
+  function getEmbedUrl(url: string) {
+  if (!url) return "";
+
+  if (url.includes("watch?v=")) {
     return url.replace("watch?v=", "embed/");
-  };
+  }
+
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1];
+    return `https://www.youtube.com/embed/${id}`;
+  }
+
+  if (url.includes("shorts/")) {
+    const id = url.split("shorts/")[1];
+    return `https://www.youtube.com/embed/${id}`;
+  }
+
+  return url;
+}
 
   return (
     <main style={mainStyle}>
@@ -244,7 +259,7 @@ Troca: ${temTroca ? "Sim" : "Não"}`
               <iframe
                 src={getEmbedUrl(carro.video)}
                 width="100%"
-                height="250"
+                height="400"
                 style={{ borderRadius: 10 }}
                 allowFullScreen
               />
