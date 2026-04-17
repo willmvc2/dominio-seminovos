@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import { CSSProperties } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
 
@@ -33,8 +34,8 @@ export default function DetalheCarro() {
   const [parcelas, setParcelas] = useState(36);
   const [cpf, setCpf] = useState("");
   const [nascimento, setNascimento] = useState("");
-  const [temCnh, setTemCnh] = useState(false);
-  const [temTroca, setTemTroca] = useState(false);
+  const [temCnh, setTemCnh] = useState<boolean | null>(null);
+  const [temTroca, setTemTroca] = useState<boolean | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -52,41 +53,39 @@ export default function DetalheCarro() {
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
   function getEmbedUrl(url: string) {
-  if (!url) return "";
+    if (!url) return "";
 
-  if (url.includes("watch?v=")) {
-    return url.replace("watch?v=", "embed/");
+    if (url.includes("watch?v=")) {
+      return url.replace("watch?v=", "embed/");
+    }
+
+    if (url.includes("youtu.be/")) {
+      const id = url.split("youtu.be/")[1];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+
+    if (url.includes("shorts/")) {
+      const id = url.split("shorts/")[1];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+
+    return url;
   }
-
-  if (url.includes("youtu.be/")) {
-    const id = url.split("youtu.be/")[1];
-    return `https://www.youtube.com/embed/${id}`;
-  }
-
-  if (url.includes("shorts/")) {
-    const id = url.split("shorts/")[1];
-    return `https://www.youtube.com/embed/${id}`;
-  }
-
-  return url;
-}
 
   return (
     <main style={mainStyle}>
       <div style={container}>
-
         <button onClick={() => router.push("/")} style={backBtn}>
           ← Voltar
         </button>
 
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative" as const }}>
           <img
             src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => setFullscreen(true)}
             style={mainImage}
           />
 
-          {/* ESQUERDA */}
           <button
             onClick={() =>
               setImagemAtual((prev) => {
@@ -99,7 +98,6 @@ export default function DetalheCarro() {
             ‹
           </button>
 
-          {/* DIREITA */}
           <button
             onClick={() =>
               setImagemAtual((prev) => {
@@ -115,7 +113,7 @@ export default function DetalheCarro() {
 
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
-            {imagens.map((img, index) => (
+            {imagens.map((img: string, index: number) => (
               <img
                 key={index}
                 src={img}
@@ -123,7 +121,7 @@ export default function DetalheCarro() {
                 style={{
                   width: 80,
                   height: 60,
-                  objectFit: "cover",
+                  objectFit: "cover" as const,
                   borderRadius: 6,
                   cursor: "pointer",
                   flexShrink: 0,
@@ -173,15 +171,27 @@ export default function DetalheCarro() {
               style={input}
             />
 
-            <label>
-              <input
-                type="checkbox"
-                checked={temTroca}
-                onChange={() => setTemTroca(!temTroca)}
-              /> Troca
-            </label>
+            <div>
+  <p>Tem carro na troca?</p>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+  <label style={{ marginRight: 10 }}>
+    <input
+      type="checkbox"
+      checked={temTroca === true}
+      onChange={() => setTemTroca(true)}
+    /> Sim
+  </label>
+
+  <label>
+    <input
+      type="checkbox"
+      checked={temTroca === false}
+      onChange={() => setTemTroca(false)}
+    /> Não
+  </label>
+</div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
               {[12, 24, 36, 48, 60].map((p) => (
                 <button
                   key={p}
@@ -207,39 +217,60 @@ export default function DetalheCarro() {
             />
 
             <input
-  type="text"
-  placeholder="DD/MM/AAAA"
-  value={nascimento}
-  onChange={(e) => {
-    let valor = e.target.value.replace(/\D/g, "");
+              type="text"
+              placeholder="DD/MM/AAAA"
+              value={nascimento}
+              onChange={(e) => {
+                let valor = e.target.value.replace(/\D/g, "");
 
-    if (valor.length > 2) valor = valor.replace(/^(\d{2})(\d)/, "$1/$2");
-    if (valor.length > 5) valor = valor.replace(/^(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
+                if (valor.length > 2)
+                  valor = valor.replace(/^(\d{2})(\d)/, "$1/$2");
+                if (valor.length > 5)
+                  valor = valor.replace(
+                    /^(\d{2})\/(\d{2})(\d)/,
+                    "$1/$2/$3"
+                  );
 
-    setNascimento(valor);
-  }}
-  style={input}
-/>
+                setNascimento(valor);
+              }}
+              style={input}
+            />
 
-            <label>
-              <input
-                type="checkbox"
-                checked={temCnh}
-                onChange={() => setTemCnh(!temCnh)}
-              /> CNH
-            </label>
+            <div>
+  <p>Tem CNH?</p>
+
+  <label style={{ marginRight: 10 }}>
+    <input
+      type="checkbox"
+      checked={temCnh === true}
+      onChange={() => setTemCnh(true)}
+    /> Sim
+  </label>
+
+  <label>
+    <input
+      type="checkbox"
+      checked={temCnh === false}
+      onChange={() => setTemCnh(false)}
+    /> Não
+  </label>
+</div>
 
             <a
               href={`https://wa.me/5511981223969?text=${encodeURIComponent(
                 `Simulação:
 ${carro.nome}
 Preço: ${formatarPreco(carro.preco)}
-Entrada: ${entrada}
+Entrada: ${entrada}r$
 Parcelas: ${parcelas}x
 CPF: ${cpf}
 Nascimento: ${nascimento}
-CNH: ${temCnh ? "Sim" : "Não"}
-Troca: ${temTroca ? "Sim" : "Não"}`
+CNH: ${
+  temCnh === null ? "Não informado" : temCnh ? "Sim" : "Não"
+}
+Troca: ${
+  temTroca === null ? "Não informado" : temTroca ? "Sim" : "Não"
+}`
               )}`}
               target="_blank"
               style={whatsBtn}
@@ -282,7 +313,7 @@ Troca: ${temTroca ? "Sim" : "Não"}`
 
 /* STYLES */
 
-const mainStyle = {
+const mainStyle: CSSProperties = {
   backgroundColor: "#0f172a",
   minHeight: "100vh",
   display: "flex",
@@ -290,13 +321,13 @@ const mainStyle = {
   padding: 20,
 };
 
-const container = {
+const container: CSSProperties = {
   width: "100%",
   maxWidth: 800,
   color: "white",
 };
 
-const backBtn = {
+const backBtn: CSSProperties = {
   marginBottom: 20,
   padding: "8px 12px",
   background: "#374151",
@@ -305,28 +336,28 @@ const backBtn = {
   color: "white",
 };
 
-const mainImage = {
+const mainImage: CSSProperties = {
   width: "100%",
-  height: "40vh",
+  height: "35vh",
   objectFit: "cover",
   borderRadius: 10,
 };
 
-const thumbWrapper = {
+const thumbWrapper: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 10,
   marginTop: 10,
 };
 
-const thumbScroll = {
+const thumbScroll: CSSProperties = {
   display: "flex",
   gap: 10,
   overflowX: "auto",
   flex: 1,
 };
 
-const videoBtn = {
+const videoBtn: CSSProperties = {
   minWidth: 130,
   height: 75,
   background: "#000",
@@ -338,7 +369,7 @@ const videoBtn = {
   flexShrink: 0,
 };
 
-const playOuter = {
+const playOuter: CSSProperties = {
   width: 30,
   height: 20,
   background: "red",
@@ -346,7 +377,7 @@ const playOuter = {
   position: "relative",
 };
 
-const playIcon = {
+const playIcon: CSSProperties = {
   width: 0,
   height: 0,
   borderTop: "6px solid transparent",
@@ -358,14 +389,14 @@ const playIcon = {
   transform: "translate(-40%, -50%)",
 };
 
-const infoBox = {
+const infoBox: CSSProperties = {
   background: "#111827",
   padding: 20,
   borderRadius: 10,
   marginTop: 20,
 };
 
-const input = {
+const input: CSSProperties = {
   padding: 10,
   borderRadius: 6,
   border: "1px solid #374151",
@@ -373,7 +404,7 @@ const input = {
   color: "white",
 };
 
-const whatsBtn = {
+const whatsBtn: CSSProperties = {
   display: "block",
   marginTop: 10,
   padding: 12,
@@ -385,7 +416,7 @@ const whatsBtn = {
   fontWeight: "bold",
 };
 
-const arrowLeft = {
+const arrowLeft: CSSProperties = {
   position: "absolute",
   left: 5,
   top: "50%",
@@ -398,13 +429,13 @@ const arrowLeft = {
   height: 40,
 };
 
-const arrowRight = {
+const arrowRight: CSSProperties = {
   ...arrowLeft,
   left: "auto",
   right: 5,
 };
 
-const overlay = {
+const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.9)",
@@ -414,7 +445,7 @@ const overlay = {
   zIndex: 999,
 };
 
-const modal = {
+const modal: CSSProperties = {
   width: "90%",
   maxWidth: 400,
   background: "#000",
@@ -422,7 +453,7 @@ const modal = {
   borderRadius: 10,
 };
 
-const closeBtn = {
+const closeBtn: CSSProperties = {
   background: "red",
   border: "none",
   borderRadius: "50%",

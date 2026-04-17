@@ -27,7 +27,7 @@ async function excluirCarro(id: number) {
 
 export default function Admin() {
   const router = useRouter();
-  const { carros, excluir } = useCarros();
+  const { carros, } = useCarros();
 
   useEffect(() => {
   const logado = sessionStorage.getItem("logado");

@@ -30,8 +30,8 @@ async function compressImage(file: File): Promise<Blob> {
         (blob) => {
           if (blob) resolve(blob);
         },
-        "image/webp", // 🔥 agora WebP
-        0.8 // 🔥 qualidade 80%
+        "image/webp",
+        0.8
       );
     };
 
@@ -41,7 +41,9 @@ async function compressImage(file: File): Promise<Blob> {
 
 export default function NovoCarro() {
   const router = useRouter();
-  const { carros, salvar } = useCarros();
+  const { carros } = useCarros();
+
+  const [loading, setLoading] = useState(false);
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -57,38 +59,40 @@ export default function NovoCarro() {
 
   const [imagens, setImagens] = useState<string[]>([]);
 
-  // ✅ UPLOAD REAL PARA SUPABASE
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
-  const files = e.target.files;
-  if (!files) return;
+    const files = e.target.files;
+    if (!files) return;
 
-  const urls: string[] = [];
+    setLoading(true);
 
-  for (const file of Array.from(files)) {
-    // 🔥 comprime em WebP
-    const compressed = await compressImage(file);
+    const urls: string[] = [];
 
-    const nomeArquivo = `${Date.now()}.webp`;
+    for (const file of Array.from(files)) {
+      const compressed = await compressImage(file);
 
-    const { error } = await supabase.storage
-      .from("carros")
-      .upload(nomeArquivo, compressed);
+      const nomeArquivo = `${Date.now()}.webp`;
 
-    if (error) {
-      alert("Erro ao enviar imagem");
-      console.log(error);
-      return;
+      const { error } = await supabase.storage
+        .from("carros")
+        .upload(nomeArquivo, compressed);
+
+      if (error) {
+        alert("Erro ao enviar imagem");
+        console.log(error);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("carros")
+        .getPublicUrl(nomeArquivo);
+
+      urls.push(data.publicUrl);
     }
 
-    const { data } = supabase.storage
-      .from("carros")
-      .getPublicUrl(nomeArquivo);
-
-    urls.push(data.publicUrl);
+    setImagens((prev) => [...prev, ...urls]);
+    setLoading(false);
   }
-
-  setImagens((prev) => [...prev, ...urls]);
-}
 
   function excluirImagem(index: number) {
     const novas = imagens.filter((_, i) => i !== index);
@@ -100,45 +104,42 @@ export default function NovoCarro() {
   }
 
   async function salvarCarro() {
-  console.log("🔥 CLIQUEI NO SALVAR");
+    console.log("🔥 CLIQUEI NO SALVAR");
 
-  const payload = {
-    nome,
-    ano,
-    km,
-    cambio,
-    combustivel,
-    video,
-    imagens,
-    status: "disponivel",
-    preco: Number(preco),
-    descricao,
-  };
+    setLoading(true);
 
-  console.log("📦 PAYLOAD:", payload);
+    const payload = {
+      nome,
+      ano,
+      km,
+      cambio,
+      combustivel,
+      video,
+      imagens,
+      status: "disponivel",
+      preco: Number(preco),
+      descricao,
+    };
 
-  const { data, error, status, statusText } = await supabase
-    .from("carros")
-    .insert([payload])
-    .select();
+    const { data, error } = await supabase
+      .from("carros")
+      .insert([payload])
+      .select();
 
-   console.log("📊 DATA:", data);
-   console.log("❌ ERROR:", error);
-   console.log("📡 STATUS:", status, statusText);
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
+    }
 
-   if (error) {
-    alert(error.message);
-    return;
-   }
-   window.dispatchEvent(new Event("carros-updated")); // 🔥 AQUI
-   // 🔥 IMPORTANTE: esperar render do estado
-   setTimeout(() => {
-    router.push("/admin");
-  }, 200);
-}
+    window.dispatchEvent(new Event("carros-updated"));
+
+    setTimeout(() => {
+      router.push("/admin");
+    }, 200);
+  }
 
   return (
-    
     <main style={styles.main}>
       <div style={styles.container}>
 
@@ -146,7 +147,6 @@ export default function NovoCarro() {
           ← Voltar
         </button>
 
-        {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
             src={imagens[imagemAtual] || "/logo.png"}
@@ -184,7 +184,6 @@ export default function NovoCarro() {
           )}
         </div>
 
-        {/* MINIATURAS */}
         <div style={styles.thumbs}>
           {imagens.map((img, i) => (
             <div key={i} style={{ position: "relative" }}>
@@ -200,23 +199,18 @@ export default function NovoCarro() {
                 }}
               />
 
-              <button
-                onClick={() => excluirImagem(i)}
-                style={styles.deleteBtn}
-              >
+              <button onClick={() => excluirImagem(i)} style={styles.deleteBtn}>
                 ✕
               </button>
             </div>
           ))}
         </div>
 
-        {/* UPLOAD */}
         <label style={styles.upload}>
           📸 Inserir fotos
           <input type="file" multiple hidden onChange={adicionarImagem} />
         </label>
 
-        {/* FORM */}
         <div style={styles.form}>
           <input placeholder="Nome do veículo" value={nome} onChange={(e) => setNome(e.target.value)} style={styles.input} />
           <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} style={styles.input} />
@@ -224,9 +218,7 @@ export default function NovoCarro() {
           <input placeholder="Câmbio" value={cambio} onChange={(e) => setCambio(e.target.value)} style={styles.input} />
           <input placeholder="Combustível" value={combustivel} onChange={(e) => setCombustivel(e.target.value)} style={styles.input} />
           <input placeholder="Preço" value={preco} onChange={(e) => setPreco(e.target.value)} style={styles.input} />
-
           <textarea placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} style={styles.textarea} />
-
           <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
 
           <button onClick={salvarCarro} style={styles.save}>
@@ -235,7 +227,21 @@ export default function NovoCarro() {
         </div>
       </div>
 
-      {/* FULLSCREEN */}
+      {/* ✅ LOADER */}
+      {loading && (
+        <div style={styles.loaderOverlay}>
+          <div style={styles.spinner}></div>
+        </div>
+      )}
+
+      {/* ✅ AQUI ESTAVA FALTANDO */}
+      <style jsx global>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
       {fullscreen && (
         <div onClick={() => setFullscreen(false)} style={styles.fullscreen}>
           <img src={imagens[imagemAtual]} style={styles.fullImg} />
@@ -354,4 +360,26 @@ const styles: any = {
     maxWidth: "95%",
     maxHeight: "95%",
   },
+
+  loaderOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.7)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+
+  spinner: {
+  width: 80,
+  height: 80,
+  borderRadius: "50%",
+  border: "6px solid transparent",
+  borderTop: "6px solid #3b82f6",
+  borderRight: "3px solid rgba(59,130,246,0.6)",
+  borderBottom: "1px solid rgba(59,130,246,0.2)",
+  animation: "spin 0.7s linear infinite",
+  boxShadow: "0 0 20px #3b82f6, 0 0 40px #3b82f6",
+},
 };
