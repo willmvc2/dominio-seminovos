@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 
 export function useCarros() {
   const [carros, setCarros] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   async function buscarCarros() {
     const { data, error } = await supabase
@@ -19,8 +20,12 @@ export function useCarros() {
   }
 
   async function carregar() {
+    setLoading(true);
+
     const data = await buscarCarros();
     setCarros(data);
+
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -29,6 +34,7 @@ export function useCarros() {
 
   return {
     carros,
-    recarregar: carregar, // 👈 importante
+    loading, // 🔥 AGORA EXISTE
+    recarregar: carregar,
   };
 }

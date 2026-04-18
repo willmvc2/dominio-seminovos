@@ -2,28 +2,26 @@
 
 import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useCarros } from "../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
 
 export default function Home() {
   const router = useRouter();
 
-  // ✅ agora vem do hook corretamente
-  const { carros, recarregar } = useCarros();
+  const { carros, loading, recarregar } = useCarros();
 
-  // fallback seguro (evita crash antes de carregar)
   const carrosSeguros = carros || [];
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
-  const atualizar = () => {
-    recarregar(); // 🔥 chama o supabase de novo
-  };
+    const atualizar = () => {
+      recarregar();
+    };
 
-  window.addEventListener("carros-updated", atualizar);
-  return () => window.removeEventListener("carros-updated", atualizar);
-}, []);
+    window.addEventListener("carros-updated", atualizar);
+    return () => window.removeEventListener("carros-updated", atualizar);
+  }, [recarregar]);
 
   // 🔥 restaura scroll
   useEffect(() => {
@@ -38,7 +36,66 @@ export default function Home() {
     }
   }, []);
 
-  // 🔥 prioridade status
+  // 🔵 LOADER (único e correto)
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="orbit">
+          <div className="dot"></div>
+          <div className="dot"></div>
+        </div>
+
+        <style jsx>{`
+          .loader-container {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f172a;
+          }
+
+          .orbit {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            animation: spin 2s linear infinite;
+          }
+
+          .dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
+          }
+
+          .dot:first-child {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          .dot:last-child {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // 🔥 ordenação
   const prioridade: any = {
     disponivel: 1,
     preparando: 2,
@@ -53,14 +110,6 @@ export default function Home() {
     return (b.id || 0) - (a.id || 0);
   });
 
-  if (!carrosSeguros.length) {
-    return (
-      <main style={{ color: "white", padding: 20 }}>
-        Nenhum veículo cadastrado
-      </main>
-    );
-  }
-
   return (
     <main
       style={{
@@ -71,8 +120,14 @@ export default function Home() {
       }}
     >
       {/* CONTEÚDO PRINCIPAL */}
-      <div style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1 }}>
-        
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1200,
+          margin: "0 auto",
+          flex: 1,
+        }}
+      >
         {/* GRID */}
         <div
           className="grid"
@@ -145,9 +200,9 @@ export default function Home() {
                 >
                   <img
                     src={
-                    Array.isArray(car.imagens) && car.imagens.length > 0
-                    ? car.imagens[0]
-                    : "/logo.png"
+                      Array.isArray(car.imagens) && car.imagens.length > 0
+                        ? car.imagens[0]
+                        : "/logo.png"
                     }
                     style={{
                       width: "100%",

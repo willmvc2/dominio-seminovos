@@ -29,14 +29,11 @@ export default function DetalheCarro() {
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
-
   const [entrada, setEntrada] = useState("");
   const [parcelas, setParcelas] = useState(36);
   const [cpf, setCpf] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [temCnh, setTemCnh] = useState<boolean | null>(null);
-  const [temTroca, setTemTroca] = useState<boolean | null>(null);
-
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -171,25 +168,7 @@ export default function DetalheCarro() {
               style={input}
             />
 
-            <div>
-  <p>Tem carro na troca?</p>
-
-  <label style={{ marginRight: 10 }}>
-    <input
-      type="checkbox"
-      checked={temTroca === true}
-      onChange={() => setTemTroca(true)}
-    /> Sim
-  </label>
-
-  <label>
-    <input
-      type="checkbox"
-      checked={temTroca === false}
-      onChange={() => setTemTroca(false)}
-    /> Não
-  </label>
-</div>
+            
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
               {[12, 24, 36, 48, 60].map((p) => (
@@ -257,8 +236,8 @@ export default function DetalheCarro() {
 </div>
 
             <a
-              href={`https://wa.me/5511981223969?text=${encodeURIComponent(
-                `Simulação:
+  href={`https://wa.me/5511981223969?text=${encodeURIComponent(
+    `Simulação:
 ${carro.nome}
 Preço: ${formatarPreco(carro.preco)}
 Entrada: ${entrada}r$
@@ -267,16 +246,13 @@ CPF: ${cpf}
 Nascimento: ${nascimento}
 CNH: ${
   temCnh === null ? "Não informado" : temCnh ? "Sim" : "Não"
-}
-Troca: ${
-  temTroca === null ? "Não informado" : temTroca ? "Sim" : "Não"
 }`
-              )}`}
-              target="_blank"
-              style={whatsBtn}
-            >
-              Enviar simulação
-            </a>
+  )}`}
+  target="_blank"
+  style={whatsBtn}
+>
+  Enviar simulação
+</a>
           </div>
         </div>
 
