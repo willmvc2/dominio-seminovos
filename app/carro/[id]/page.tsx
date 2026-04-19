@@ -1,13 +1,12 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { CSSProperties } from "react";
+import { useState, useEffect, useRef, CSSProperties } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
 
 export default function DetalheCarro() {
-  const { carros } = useCarros();
+  const { carros, loading } = useCarros();
   const params = useParams();
   const router = useRouter();
 
@@ -29,11 +28,14 @@ export default function DetalheCarro() {
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
+
+  // ✅ SIMULAÇÃO
   const [entrada, setEntrada] = useState("");
   const [parcelas, setParcelas] = useState(36);
   const [cpf, setCpf] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [temCnh, setTemCnh] = useState<boolean | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,7 +47,66 @@ export default function DetalheCarro() {
     });
   }, [imagemAtual]);
 
-  if (!carro) return <p style={{ color: "white" }}>Carro não encontrado</p>;
+  // ✅ LOADING (mantido padrão HOME)
+  if (loading || !carro) {
+    return (
+      <>
+        <div className="loader-container">
+          <div className="orbit">
+            <div className="dot"></div>
+            <div className="dot"></div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .loader-container {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f172a;
+          }
+
+          .orbit {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            animation: spin 2s linear infinite;
+          }
+
+          .dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
+          }
+
+          .dot:first-child {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          .dot:last-child {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </>
+    );
+  }
 
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
@@ -76,7 +137,7 @@ export default function DetalheCarro() {
           ← Voltar
         </button>
 
-        <div style={{ position: "relative" as const }}>
+        <div style={{ position: "relative" }}>
           <img
             src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => setFullscreen(true)}
@@ -85,10 +146,9 @@ export default function DetalheCarro() {
 
           <button
             onClick={() =>
-              setImagemAtual((prev) => {
-                if (!imagens.length) return 0;
-                return prev - 1 < 0 ? imagens.length - 1 : prev - 1;
-              })
+              setImagemAtual((prev) =>
+                prev - 1 < 0 ? imagens.length - 1 : prev - 1
+              )
             }
             style={arrowLeft}
           >
@@ -97,10 +157,9 @@ export default function DetalheCarro() {
 
           <button
             onClick={() =>
-              setImagemAtual((prev) => {
-                if (!imagens.length) return 0;
-                return prev + 1 >= imagens.length ? 0 : prev + 1;
-              })
+              setImagemAtual((prev) =>
+                prev + 1 >= imagens.length ? 0 : prev + 1
+              )
             }
             style={arrowRight}
           >
@@ -118,7 +177,7 @@ export default function DetalheCarro() {
                 style={{
                   width: 80,
                   height: 60,
-                  objectFit: "cover" as const,
+                  objectFit: "cover",
                   borderRadius: 6,
                   cursor: "pointer",
                   flexShrink: 0,
@@ -141,7 +200,9 @@ export default function DetalheCarro() {
         </div>
 
         <div style={infoBox}>
-          <h1 style={{ fontSize: 24, fontWeight: "bold" }}>{carro.nome}</h1>
+          <h1 style={{ fontSize: 24, fontWeight: "bold" }}>
+            {carro.nome}
+          </h1>
 
           <p>Ano: {carro.ano}</p>
           <p>KM: {carro.km || "-"}</p>
@@ -160,6 +221,7 @@ export default function DetalheCarro() {
             WhatsApp
           </a>
 
+          {/* ✅ SIMULAÇÃO */}
           <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
             <input
               placeholder="Valor de entrada"
@@ -168,9 +230,7 @@ export default function DetalheCarro() {
               style={input}
             />
 
-            
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[12, 24, 36, 48, 60].map((p) => (
                 <button
                   key={p}
@@ -196,92 +256,54 @@ export default function DetalheCarro() {
             />
 
             <input
-              type="text"
               placeholder="DD/MM/AAAA"
               value={nascimento}
-              onChange={(e) => {
-                let valor = e.target.value.replace(/\D/g, "");
-
-                if (valor.length > 2)
-                  valor = valor.replace(/^(\d{2})(\d)/, "$1/$2");
-                if (valor.length > 5)
-                  valor = valor.replace(
-                    /^(\d{2})\/(\d{2})(\d)/,
-                    "$1/$2/$3"
-                  );
-
-                setNascimento(valor);
-              }}
+              onChange={(e) => setNascimento(e.target.value)}
               style={input}
             />
 
             <div>
-  <p>Tem CNH?</p>
+              <p>Tem CNH?</p>
 
-  <label style={{ marginRight: 10 }}>
-    <input
-      type="checkbox"
-      checked={temCnh === true}
-      onChange={() => setTemCnh(true)}
-    /> Sim
-  </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={temCnh === true}
+                  onChange={() => setTemCnh(true)}
+                />{" "}
+                Sim
+              </label>
 
-  <label>
-    <input
-      type="checkbox"
-      checked={temCnh === false}
-      onChange={() => setTemCnh(false)}
-    /> Não
-  </label>
-</div>
+              <label style={{ marginLeft: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={temCnh === false}
+                  onChange={() => setTemCnh(false)}
+                />{" "}
+                Não
+              </label>
+            </div>
 
             <a
-  href={`https://wa.me/5511981223969?text=${encodeURIComponent(
-    `Simulação:
+              href={`https://wa.me/5511981223969?text=${encodeURIComponent(
+                `Simulação:
 ${carro.nome}
 Preço: ${formatarPreco(carro.preco)}
-Entrada: ${entrada}r$
+Entrada: ${entrada}
 Parcelas: ${parcelas}x
 CPF: ${cpf}
 Nascimento: ${nascimento}
 CNH: ${
-  temCnh === null ? "Não informado" : temCnh ? "Sim" : "Não"
-}`
-  )}`}
-  target="_blank"
-  style={whatsBtn}
->
-  Enviar simulação
-</a>
+                  temCnh === null ? "Não informado" : temCnh ? "Sim" : "Não"
+                }`
+              )}`}
+              target="_blank"
+              style={whatsBtn}
+            >
+              Enviar simulação
+            </a>
           </div>
         </div>
-
-        {videoOpen && (
-          <div onClick={() => setVideoOpen(false)} style={overlay}>
-            <div onClick={(e) => e.stopPropagation()} style={modal}>
-              <button onClick={() => setVideoOpen(false)} style={closeBtn}>
-                ✕
-              </button>
-
-              <iframe
-                src={getEmbedUrl(carro.video)}
-                width="100%"
-                height="400"
-                style={{ borderRadius: 10 }}
-                allowFullScreen
-              />
-            </div>
-          </div>
-        )}
-
-        {fullscreen && (
-          <div onClick={() => setFullscreen(false)} style={overlay}>
-            <img
-              src={imagens[imagemAtual] || "/logo.png"}
-              style={{ maxWidth: "95%", maxHeight: "95%" }}
-            />
-          </div>
-        )}
       </div>
     </main>
   );
@@ -342,7 +364,6 @@ const videoBtn: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  flexShrink: 0,
 };
 
 const playOuter: CSSProperties = {
@@ -409,31 +430,4 @@ const arrowRight: CSSProperties = {
   ...arrowLeft,
   left: "auto",
   right: 5,
-};
-
-const overlay: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.9)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 999,
-};
-
-const modal: CSSProperties = {
-  width: "90%",
-  maxWidth: 400,
-  background: "#000",
-  padding: 10,
-  borderRadius: 10,
-};
-
-const closeBtn: CSSProperties = {
-  background: "red",
-  border: "none",
-  borderRadius: "50%",
-  width: 30,
-  height: 30,
-  color: "white",
 };

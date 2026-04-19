@@ -5,8 +5,50 @@ import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../../data/useCarros";
 import { supabase } from "@/lib/supabase";
 
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+
+      const maxWidth = 1200;
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        const scale = maxWidth / width;
+        width = maxWidth;
+        height = height * scale;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+        },
+        "image/webp",
+        0.7
+      );
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function EditarCarro() {
-  const { carros, salvar } = useCarros();
+  const { carros, } = useCarros();
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
@@ -31,16 +73,30 @@ export default function EditarCarro() {
     setForm((prev: any) => ({ ...prev, [campo]: valor }));
   }
 
-  function uploadImagem(e: any) {
-    const file = e.target.files[0];
-    if (!file) return;
+  async function uploadImagem(e: any) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      atualizar("imagens", [...form.imagens, reader.result]);
-    };
-    reader.readAsDataURL(file);
+  const compressed = await compressImage(file);
+
+  const nomeArquivo = `${Date.now()}-${Math.random()}.webp`;
+
+  const { error } = await supabase.storage
+    .from("carros")
+    .upload(nomeArquivo, compressed);
+
+  if (error) {
+    alert("Erro ao enviar imagem");
+    console.log(error);
+    return;
   }
+
+  const { data } = supabase.storage
+    .from("carros")
+    .getPublicUrl(nomeArquivo);
+
+  atualizar("imagens", [...form.imagens, data.publicUrl]);
+}
 
   function excluirImagem(index: number) {
     const novas = form.imagens.filter((_: any, i: number) => i !== index);

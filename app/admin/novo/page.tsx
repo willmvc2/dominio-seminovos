@@ -18,10 +18,18 @@ async function compressImage(file: File): Promise<Blob> {
       const canvas = document.createElement("canvas");
 
       const maxWidth = 1200;
-      const scale = maxWidth / img.width;
 
-      canvas.width = maxWidth;
-      canvas.height = img.height * scale;
+let width = img.width;
+let height = img.height;
+
+if (width > maxWidth) {
+  const scale = maxWidth / width;
+  width = maxWidth;
+  height = height * scale;
+}
+
+canvas.width = width;
+canvas.height = height;
 
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -31,7 +39,7 @@ async function compressImage(file: File): Promise<Blob> {
           if (blob) resolve(blob);
         },
         "image/webp",
-        0.8
+        0.7
       );
     };
 
@@ -70,7 +78,7 @@ export default function NovoCarro() {
     for (const file of Array.from(files)) {
       const compressed = await compressImage(file);
 
-      const nomeArquivo = `${Date.now()}.webp`;
+      const nomeArquivo = `${Date.now()}-${Math.random()}.webp`;
 
       const { error } = await supabase.storage
         .from("carros")
