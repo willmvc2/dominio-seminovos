@@ -172,8 +172,8 @@ export default function Home() {
                       status === "vendido"
                         ? "#dc2626"
                         : status === "preparando"
-                        ? "#374151"
-                        : "#16a34a",
+                          ? "#374151"
+                          : "#16a34a",
                     zIndex: 10,
                     fontSize: 13,
                   }}
@@ -204,6 +204,8 @@ export default function Home() {
                         ? car.imagens[0]
                         : "/logo.png"
                     }
+                    onContextMenu={(e) => e.preventDefault()}
+                    onDragStart={(e) => e.preventDefault()}
                     style={{
                       width: "100%",
                       height: 180,

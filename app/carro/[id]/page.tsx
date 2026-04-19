@@ -29,7 +29,7 @@ export default function DetalheCarro() {
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
 
-  // ✅ SIMULAÇÃO
+  // SIMULAÇÃO
   const [entrada, setEntrada] = useState("");
   const [parcelas, setParcelas] = useState(36);
   const [cpf, setCpf] = useState("");
@@ -47,7 +47,7 @@ export default function DetalheCarro() {
     });
   }, [imagemAtual]);
 
-  // ✅ LOADING (mantido padrão HOME)
+  // LOADING
   if (loading || !carro) {
     return (
       <>
@@ -137,12 +137,15 @@ export default function DetalheCarro() {
           ← Voltar
         </button>
 
+        {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
-            src={imagens[imagemAtual] || "/logo.png"}
-            onClick={() => setFullscreen(true)}
-            style={mainImage}
-          />
+  src={imagens[imagemAtual] || "/logo.png"}
+  onClick={() => setFullscreen((prev) => !prev)}
+  onContextMenu={(e) => e.preventDefault()}
+  onDragStart={(e) => e.preventDefault()}
+  style={mainImage}
+/>
 
           <button
             onClick={() =>
@@ -167,6 +170,7 @@ export default function DetalheCarro() {
           </button>
         </div>
 
+        {/* THUMBS */}
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
             {imagens.map((img: string, index: number) => (
@@ -199,10 +203,9 @@ export default function DetalheCarro() {
           )}
         </div>
 
+        {/* INFO */}
         <div style={infoBox}>
-          <h1 style={{ fontSize: 24, fontWeight: "bold" }}>
-            {carro.nome}
-          </h1>
+          <h1 style={{ fontSize: 24, fontWeight: "bold" }}>{carro.nome}</h1>
 
           <p>Ano: {carro.ano}</p>
           <p>KM: {carro.km || "-"}</p>
@@ -221,7 +224,7 @@ export default function DetalheCarro() {
             WhatsApp
           </a>
 
-          {/* ✅ SIMULAÇÃO */}
+          {/* SIMULAÇÃO */}
           <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
             <input
               placeholder="Valor de entrada"
@@ -304,6 +307,67 @@ CNH: ${
             </a>
           </div>
         </div>
+
+        {/* FULLSCREEN IMAGEM (CORREÇÃO QUE ESTAVA FALTANDO) */}
+        {fullscreen && (
+  <div onClick={() => setFullscreen(false)} style={overlay}>
+    
+    <div style={{ position: "relative", maxWidth: "95%", maxHeight: "95%" }}>
+      
+      <img
+  src={imagens[imagemAtual] || "/logo.png"}
+  onClick={() => setFullscreen(false)}
+  onContextMenu={(e) => e.preventDefault()}   // ❌ bloqueia botão direito
+  onDragStart={(e) => e.preventDefault()}      // ❌ bloqueia arrastar
+  style={{
+    width: "100%",
+    height: "auto",
+    borderRadius: 10,
+    userSelect: "none",
+    
+  }}
+   />
+      {/* 🔥 MARCA D'ÁGUA */}
+      <div
+  style={{
+    position: "absolute",
+    bottom: 60,
+    left: 0,
+    width: "100%",
+    textAlign: "center",
+    fontSize: "clamp(12px, 2.5vw, 18px)",
+    fontWeight: "bold",
+    color: "rgba(255,255,255,0.35)",
+    pointerEvents: "none",
+    letterSpacing: 1,
+  }}
+>
+  DOMINIOSEMINOVOS.COM.BR
+</div>
+
+    </div>
+
+  </div>
+)}
+
+        {/* VIDEO MODAL */}
+        {videoOpen && (
+          <div onClick={() => setVideoOpen(false)} style={overlay}>
+            <div onClick={(e) => e.stopPropagation()} style={modal}>
+              <button onClick={() => setVideoOpen(false)} style={closeBtn}>
+                ✕
+              </button>
+
+              <iframe
+                src={getEmbedUrl(carro.video)}
+                width="100%"
+                height="400"
+                style={{ borderRadius: 10 }}
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -430,4 +494,31 @@ const arrowRight: CSSProperties = {
   ...arrowLeft,
   left: "auto",
   right: 5,
+};
+
+const overlay: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.9)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 999,
+};
+
+const modal: CSSProperties = {
+  width: "90%",
+  maxWidth: 400,
+  background: "#000",
+  padding: 10,
+  borderRadius: 10,
+};
+
+const closeBtn: CSSProperties = {
+  background: "red",
+  border: "none",
+  borderRadius: "50%",
+  width: 30,
+  height: 30,
+  color: "white",
 };
