@@ -146,6 +146,25 @@ export default function DetalheCarro() {
   onDragStart={(e) => e.preventDefault()}
   style={mainImage}
 />
+{/* WATERMARK */}
+<div
+  style={{
+    position: "absolute",
+    bottom: 10,
+    left: 0,
+    right: 0,
+    display: "flex",
+    justifyContent: "center",
+    pointerEvents: "none",
+    opacity: 0.35,
+    fontSize: 14,
+    color: "white",
+    fontWeight: "bold",
+    textShadow: "0 2px 5px rgba(0,0,0,0.8)",
+  }}
+>
+  DOMINIOSEMINOVOS.COM.BR
+</div>
 
           <button
             onClick={() =>

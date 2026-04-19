@@ -198,20 +198,40 @@ export default function Home() {
                     opacity: isVendido ? 0.6 : 1,
                   }}
                 >
-                  <img
-                    src={
-                      Array.isArray(car.imagens) && car.imagens.length > 0
-                        ? car.imagens[0]
-                        : "/logo.png"
-                    }
-                    onContextMenu={(e) => e.preventDefault()}
-                    onDragStart={(e) => e.preventDefault()}
-                    style={{
-                      width: "100%",
-                      height: 180,
-                      objectFit: "cover",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <img
+                      src={
+                        Array.isArray(car.imagens) && car.imagens.length > 0
+                          ? car.imagens[0]
+                          : "/logo.png"
+                      }
+                      onContextMenu={(e) => e.preventDefault()}
+                      onDragStart={(e) => e.preventDefault()}
+                      style={{
+                        width: "100%",
+                        height: 180,
+                        objectFit: "cover",
+                      }}
+                    />
+
+                    {/* MARCA D'ÁGUA */}
+                    <div
+  style={{
+    position: "absolute",
+    bottom: 8,
+    left: 0,
+    width: "100%",
+    textAlign: "center",
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    fontWeight: 500,
+    pointerEvents: "none",
+    userSelect: "none",
+  }}
+>
+  DOMINIOSEMINOVOS.COM.BR
+</div>
+                  </div>
 
                   <div style={{ padding: 15 }}>
                     <h2 style={{ color: "white", fontWeight: "bold" }}>
