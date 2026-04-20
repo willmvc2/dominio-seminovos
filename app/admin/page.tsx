@@ -193,7 +193,7 @@ export default function Admin() {
                     }}
                   />
 
-                  <div style={{ padding: 15 }}>
+                  <div style={{ paddingTop: 10 }}>
   <h2 style={{ color: "white", fontWeight: "bold" }}>
     {car.nome}
   </h2>

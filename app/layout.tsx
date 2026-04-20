@@ -2,15 +2,21 @@ import "./globals.css";
 import Menu from "../components/Menu";
 import { Poppins } from "next/font/google";
 
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "600", "700"],
 });
 
 export const metadata = {
-  title: "Carros seminovos em São Paulo | Sua Loja",
+  title: "Carros seminovos em São Paulo | Dominio Seminovos",
   description:
     "Encontre carros seminovos em São Paulo. Veículos revisados, com procedência e ótimas condições de pagamento.",
+manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({

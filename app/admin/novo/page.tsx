@@ -310,7 +310,7 @@ export default function NovoCarro() {
 
       {fullscreen && (
         <div onClick={() => setFullscreen(false)} style={styles.fullscreen}>
-          <img src={imagens[imagemAtual]} style={styles.fullImg} />
+         <img src={imagens[imagemAtual] || "/logo.png"} style={styles.fullImg} />
         </div>
       )}
     </main>

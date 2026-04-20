@@ -193,7 +193,7 @@ export default function EditarCarro() {
         color: "white",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 700 }}>
+      <div style={{ width: "100%", maxWidth: 500 }}>
 
         {/* VOLTAR */}
         <button
@@ -211,7 +211,7 @@ export default function EditarCarro() {
           ← Voltar
         </button>
 
-        <h1 style={{ marginBottom: 20 }}>Editar veículo</h1>
+        <h1 style={{ marginBottom: 10 }}>Editar veículo</h1>
 
         {/* 🔥 IMAGEM COM SETAS */}
         <div style={{ position: "relative" }}>
@@ -219,7 +219,7 @@ export default function EditarCarro() {
             src={form.imagens?.[imagemAtual] || "/logo.png"}
             style={{
               width: "100%",
-              height: 360,
+              height: 270,
               objectFit: "cover",
               borderRadius: 10,
               marginBottom: 10,
