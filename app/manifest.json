@@ -1,5 +1,16 @@
+
+export const metadata = {
+  title: "Dominio Seminovos",
+  manifest: "/manifest.json",
+  themeColor: "#0f172a",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png"
+  }
+};
+
 {
-  "name": "Domínio Seminovos",
+  "name": "Dominio Seminovos",
   "short_name": "Seminovos",
   "start_url": "/",
   "display": "standalone",

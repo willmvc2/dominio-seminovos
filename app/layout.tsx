@@ -14,9 +14,9 @@ export const metadata = {
     "Encontre carros seminovos em São Paulo. Veículos revisados, com procedência e ótimas condições de pagamento.",
 manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
-  },
+  icon: "/icon-192.png",
+  apple: "/icon-192.png",
+},
 };
 
 export default function RootLayout({
