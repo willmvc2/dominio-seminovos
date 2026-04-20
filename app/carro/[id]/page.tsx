@@ -12,6 +12,20 @@ export default function DetalheCarro() {
 
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
+  
+  function gerarTitulo(carro: any) {
+  if (!carro) return "Carro";
+  return `${carro.nome} ${carro.ano} à venda em São Paulo`;
+}
+
+function gerarSlug(carro: any) {
+  if (!carro) return "";
+
+  return `${carro.nome}-${carro.ano}`
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "");
+}
 
   const imagens = (() => {
     if (!carro?.imagens) return [];
@@ -38,17 +52,38 @@ export default function DetalheCarro() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+   // SEO
   useEffect(() => {
-    if (!scrollRef.current) return;
+  if (carro) {
+    document.title = `${carro.nome} ${carro.ano} à venda em São Paulo`;
 
-    scrollRef.current.scrollTo({
-      left: imagemAtual * 90,
-      behavior: "smooth",
-    });
-  }, [imagemAtual]);
+    let metaDescription = document.querySelector("meta[name='description']");
+    
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.setAttribute("name", "description");
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.setAttribute(
+      "content",
+      `${carro.nome} ${carro.ano} com ótimo preço. Confira fotos, detalhes e fale direto no WhatsApp.`
+    );
+  }
+}, [carro]);
+
+   useEffect(() => {
+  if (!scrollRef.current) return;
+
+  scrollRef.current.scrollTo({
+    left: imagemAtual * 90,
+    behavior: "smooth",
+  });
+}, [imagemAtual]);
 
   // LOADING
   if (loading || !carro) {
+   
     return (
       <>
         <div className="loader-container">

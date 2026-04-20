@@ -5,8 +5,9 @@ import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../../data/useCarros";
 import { supabase } from "@/lib/supabase";
 
+
 async function compressImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();
 
@@ -36,7 +37,11 @@ async function compressImage(file: File): Promise<Blob> {
 
       canvas.toBlob(
         (blob) => {
-          if (blob) resolve(blob);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Erro ao comprimir imagem"));
+          }
         },
         "image/webp",
         0.7
@@ -59,6 +64,7 @@ export default function EditarCarro() {
   const [imagemAtual, setImagemAtual] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (carro) {
@@ -69,34 +75,70 @@ export default function EditarCarro() {
     }
   }, [carro]);
 
+  useEffect(() => {
+    if (!scrollRef.current) return;
+
+    scrollRef.current.scrollTo({
+      left: imagemAtual * 90,
+      behavior: "smooth",
+    });
+  }, [imagemAtual]);
+
   function atualizar(campo: string, valor: any) {
-    setForm((prev: any) => ({ ...prev, [campo]: valor }));
+    setForm((prev: any) => ({
+      ...prev,
+      [campo]: typeof valor === "function" ? valor(prev[campo]) : valor,
+    }));
   }
 
   async function uploadImagem(e: any) {
-  const file = e.target.files[0];
-  if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  const compressed = await compressImage(file);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
 
-  const nomeArquivo = `${Date.now()}-${Math.random()}.webp`;
+      const compressed = await compressImage(file);
 
-  const { error } = await supabase.storage
-    .from("carros")
-    .upload(nomeArquivo, compressed);
+      const nomeArquivo = `${Date.now()}-${i}.webp`;
 
-  if (error) {
-    alert("Erro ao enviar imagem");
-    console.log(error);
-    return;
-  }
+      const { error } = await supabase.storage
+        .from("carros")
+        .upload(nomeArquivo, compressed);
 
-  const { data } = supabase.storage
-    .from("carros")
-    .getPublicUrl(nomeArquivo);
+      if (error) {
+        console.log(error);
+        continue;
+      }
 
-  atualizar("imagens", [...form.imagens, data.publicUrl]);
+      const { data } = supabase.storage
+        .from("carros")
+        .getPublicUrl(nomeArquivo);
+
+      atualizar("imagens", (prev: string[]) => [
+        ...(prev || form.imagens || []),
+        data.publicUrl,
+      ]);
+    }
+
+    const compressed = await compressImage(file);
+    const nomeArquivo = `${Date.now()}-${Math.random()}.webp`;
+    const { error } = await supabase.storage
+      .from("carros")
+      .upload(nomeArquivo, compressed as Blob);
+
+    if (error) {
+  alert("Erro ao enviar imagem");
+  console.error((error as any).message);
+  return;
 }
+
+    const { data } = supabase.storage
+      .from("carros")
+      .getPublicUrl(nomeArquivo);
+
+    atualizar("imagens", [...form.imagens, data.publicUrl]);
+  }
 
   function excluirImagem(index: number) {
     const novas = form.imagens.filter((_: any, i: number) => i !== index);
@@ -105,38 +147,38 @@ export default function EditarCarro() {
   }
 
   async function salvarAlteracao() {
-  console.log("🔥 clicou salvar");
-  console.log("ID:", id);
-  console.log("FORM:", form);
+    console.log("🔥 clicou salvar");
+    console.log("ID:", id);
+    console.log("FORM:", form);
 
-  const { data, error } = await supabase
-    .from("carros")
-    .update({
-      nome: form.nome,
-      ano: form.ano,
-      km: form.km,
-      cambio: form.cambio,
-      combustivel: form.combustivel,
-      preco: Number(form.preco),
-      descricao: form.descricao,
-      video: form.video,
-      imagens: form.imagens,
-      status: form.status,
-    })
-    .eq("id", id);
+    const { data, error } = await supabase
+      .from("carros")
+      .update({
+        nome: form.nome,
+        ano: form.ano,
+        km: form.km,
+        cambio: form.cambio,
+        combustivel: form.combustivel,
+        preco: Number(form.preco),
+        descricao: form.descricao,
+        video: form.video,
+        imagens: form.imagens,
+        status: form.status,
+      })
+      .eq("id", id);
 
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
 
-  if (error) {
-    alert(error.message);
-    return;
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Salvo com sucesso!");
+    window.dispatchEvent(new Event("carros-updated")); // 🔥 AQUI
+    router.push("/admin");
   }
-
-  alert("Salvo com sucesso!");
-  window.dispatchEvent(new Event("carros-updated")); // 🔥 AQUI
-  router.push("/admin");
-}
 
   if (!form) return <p style={{ color: "white" }}>Carregando...</p>;
 
@@ -236,7 +278,15 @@ export default function EditarCarro() {
         </div>
 
         {/* MINIATURAS */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+        <div
+          ref={scrollRef}
+          style={{
+            display: "flex",
+            gap: 10,
+            overflowX: "auto",
+            marginBottom: 20
+          }}
+        >
           {(Array.isArray(form.imagens) ? form.imagens : []).map((img: string, index: number) => (
             <div key={index} style={{ position: "relative" }}>
               <img
@@ -248,6 +298,7 @@ export default function EditarCarro() {
                   objectFit: "cover",
                   borderRadius: 6,
                   cursor: "pointer",
+                  flexShrink: 0,
                   border: imagemAtual === index ? "2px solid #3b82f6" : "none",
                 }}
               />
@@ -276,6 +327,7 @@ export default function EditarCarro() {
         {/* UPLOAD */}
         <input
           type="file"
+          multiple
           ref={fileInputRef}
           onChange={uploadImagem}
           style={{ display: "none" }}

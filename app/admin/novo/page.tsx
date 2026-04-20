@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { supabase } from "@/lib/supabase";
 
@@ -55,7 +55,7 @@ export default function NovoCarro() {
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [nome, setNome] = useState("");
   const [ano, setAno] = useState("");
   const [km, setKm] = useState("");
@@ -64,9 +64,17 @@ export default function NovoCarro() {
   const [preco, setPreco] = useState("");
   const [descricao, setDescricao] = useState("");
   const [video, setVideo] = useState("");
-
   const [imagens, setImagens] = useState<string[]>([]);
+  
+  useEffect(() => {
+  if (!scrollRef.current) return;
 
+  scrollRef.current.scrollTo({
+    left: imagemAtual * 100,
+    behavior: "smooth",
+  });
+}, [imagemAtual]);
+  
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
@@ -167,6 +175,56 @@ export default function NovoCarro() {
             }}
             style={styles.mainImage}
           />
+          {imagens.length > 0 && (
+  <button
+    onClick={() =>
+      setImagemAtual((prev) =>
+        prev - 1 < 0 ? imagens.length - 1 : prev - 1
+      )
+    }
+    style={{
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "rgba(0,0,0,0.6)",
+      color: "white",
+      border: "none",
+      borderRadius: "50%",
+      width: 45,
+      height: 45,
+      fontSize: 20,
+      cursor: "pointer",
+    }}
+  >
+    ‹
+  </button>
+)}
+{imagens.length > 0 && (
+  <button
+    onClick={() =>
+      setImagemAtual((prev) =>
+        prev + 1 >= imagens.length ? 0 : prev + 1
+      )
+    }
+    style={{
+      position: "absolute",
+      right: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "rgba(0,0,0,0.6)",
+      color: "white",
+      border: "none",
+      borderRadius: "50%",
+      width: 45,
+      height: 45,
+      fontSize: 20,
+      cursor: "pointer",
+    }}
+  >
+    ›
+  </button>
+)}
 
           {imagens.length === 0 && (
             <div
@@ -192,7 +250,7 @@ export default function NovoCarro() {
           )}
         </div>
 
-        <div style={styles.thumbs}>
+        <div ref={scrollRef} style={styles.thumbs}>
           {imagens.map((img, i) => (
             <div key={i} style={{ position: "relative" }}>
               <img

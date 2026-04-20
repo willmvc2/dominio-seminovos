@@ -7,6 +7,12 @@ const poppins = Poppins({
   weight: ["300", "400", "600", "700"],
 });
 
+export const metadata = {
+  title: "Carros seminovos em São Paulo | Sua Loja",
+  description:
+    "Encontre carros seminovos em São Paulo. Veículos revisados, com procedência e ótimas condições de pagamento.",
+};
+
 export default function RootLayout({
   children,
 }: {
