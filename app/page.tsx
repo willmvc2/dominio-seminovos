@@ -1,10 +1,20 @@
 "use client";
 
 import Footer from "../components/Footer";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useCarros } from "../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
+
+
+async function incrementarCliques(id: number) {
+  const { error } = await supabase.rpc("incrementar_cliques", {
+    carro_id: id,
+  });
+
+  console.log("erro:", error);
+}
 
 export default function Home() {
   const router = useRouter();
@@ -184,21 +194,26 @@ export default function Home() {
                 {/* CARD */}
                 <div
                   onClick={() => {
-                    if (isVendido) return;
+  if (isVendido) return;
 
-                    sessionStorage.setItem(
-                      "scrollY",
-                      window.scrollY.toString()
-                    );
+  console.log("clicou", car.id); // 👈 adiciona isso
 
-                    router.push(`/carro/${car.id}`);
-                  }}
+  incrementarCliques(car.id);
+
+  sessionStorage.setItem(
+    "scrollY",
+    window.scrollY.toString()
+  );
+
+  router.push(`/carro/${car.id}`);
+}}
                   style={{
                     cursor: isVendido ? "not-allowed" : "pointer",
                     opacity: isVendido ? 0.6 : 1,
                   }}
                 >
                   <div style={{ position: "relative" }}>
+                  
                     <img
                       src={
                         Array.isArray(car.imagens) && car.imagens.length > 0

@@ -193,7 +193,7 @@ export default function EditarCarro() {
         color: "white",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 500 }}>
+      <div style={{ width: "100%", maxWidth: 700 }}>
 
         {/* VOLTAR */}
         <button
