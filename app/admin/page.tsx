@@ -46,6 +46,10 @@ export default function Admin() {
     vendido: 3,
   };
 
+  const totalCliques = carros.reduce((total, car) => {
+  return total + (car.cliques ?? 0);
+}, 0);
+
   const carrosOrdenados = [...carros].sort((a, b) => {
     const statusA =
       statusOrder[(a.status || "disponivel").toLowerCase().trim()] ?? 999;
@@ -70,35 +74,52 @@ export default function Admin() {
       <div style={{ width: "100%", maxWidth: 1200 }}>
 
         {/* TOPO */}
-        <div style={{ backgroundColor: "black", width: "100%" }}>
-          <div
-            style={{
-              maxWidth: 1100,
-              margin: "0 auto",
-              padding: "15px 10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            
+<div style={{ backgroundColor: "black", width: "100%" }}>
+  <div
+    style={{
+      maxWidth: 1100,
+      margin: "0 auto",
+      padding: "15px 10px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}
+  >
+    {/* TOTAL DE CLIQUES */}
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        background: "rgba(59,130,246,0.12)",
+        color: "#3b82f6",
+        padding: "6px 12px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        border: "1px solid rgba(59,130,246,0.4)",
+      }}
+    >
+      👁 Total: {carros.reduce((total, car) => total + (car.cliques ?? 0), 0)}
+    </div>
 
-            <button
-              onClick={() => router.push("/admin/novo")}
-              style={{
-                padding: "8px 12px",
-                background: "#3b82f6",
-                color: "white",
-                border: "none",
-                borderRadius: 6,
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              ➕ Novo veículo
-            </button>
-          </div>
-        </div>
+    {/* BOTÃO */}
+    <button
+      onClick={() => router.push("/admin/novo")}
+      style={{
+        padding: "8px 12px",
+        background: "#3b82f6",
+        color: "white",
+        border: "none",
+        borderRadius: 6,
+        fontWeight: "bold",
+        cursor: "pointer",
+      }}
+    >
+      ➕ Novo veículo
+    </button>
+  </div>
+</div>
 
         {/* GRID */}
         <div
