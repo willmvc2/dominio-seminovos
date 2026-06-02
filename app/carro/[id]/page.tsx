@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, CSSProperties } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
 
 export default function DetalheCarro() {
   const { carros, loading } = useCarros();
@@ -173,56 +175,41 @@ function gerarSlug(carro: any) {
         </button>
 
         {/* IMAGEM PRINCIPAL */}
-        <div style={{ position: "relative" }}>
-          <img
-  src={imagens[imagemAtual] || "/logo.png"}
-  onClick={() => setFullscreen((prev) => !prev)}
-  onContextMenu={(e) => e.preventDefault()}
-  onDragStart={(e) => e.preventDefault()}
-  style={mainImage}
-/>
-{/* WATERMARK */}
-<div
-  style={{
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    display: "flex",
-    justifyContent: "center",
-    pointerEvents: "none",
-    opacity: 0.35,
-    fontSize: 14,
-    color: "white",
-    fontWeight: "bold",
-    textShadow: "0 2px 5px rgba(0,0,0,0.8)",
-  }}
->
-  DOMINIOSEMINOVOS.COM.BR
+        <div style={{ position: "relative", width: "100%", maxWidth: 900 }}>
+  <Swiper
+    spaceBetween={10}
+    slidesPerView={1}
+    initialSlide={imagemAtual}
+    onSlideChange={(swiper) => setImagemAtual(swiper.activeIndex)}
+  >
+    {imagens.map((img, index) => (
+      <SwiperSlide key={index}>
+        <img
+          src={img}
+          style={{
+            width: "100%",
+            height: "auto",
+            borderRadius: 10,
+          }}
+        />
+      </SwiperSlide>
+    ))}
+  </Swiper>
+
+  <div
+    style={{
+      position: "absolute",
+      bottom: 20,
+      width: "100%",
+      textAlign: "center",
+      color: "rgba(255,255,255,0.35)",
+      fontWeight: "bold",
+      pointerEvents: "none",
+    }}
+  >
+    DOMINIOSEMINOVOS.COM.BR
+  </div>
 </div>
-
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                prev - 1 < 0 ? imagens.length - 1 : prev - 1
-              )
-            }
-            style={arrowLeft}
-          >
-            ‹
-          </button>
-
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                prev + 1 >= imagens.length ? 0 : prev + 1
-              )
-            }
-            style={arrowRight}
-          >
-            ›
-          </button>
-        </div>
 
         {/* THUMBS */}
         <div style={thumbWrapper}>
@@ -362,45 +349,50 @@ CNH: ${
           </div>
         </div>
 
-        {/* FULLSCREEN IMAGEM (CORREÇÃO QUE ESTAVA FALTANDO) */}
+        {/* FULLSCREEN IMAGEM */}
         {fullscreen && (
   <div onClick={() => setFullscreen(false)} style={overlay}>
-    
-    <div style={{ position: "relative", maxWidth: "95%", maxHeight: "95%" }}>
-      
-      <img
-  src={imagens[imagemAtual] || "/logo.png"}
-  onClick={() => setFullscreen(false)}
-  onContextMenu={(e) => e.preventDefault()}   // ❌ bloqueia botão direito
-  onDragStart={(e) => e.preventDefault()}      // ❌ bloqueia arrastar
-  style={{
-    width: "100%",
-    height: "auto",
-    borderRadius: 10,
-    userSelect: "none",
-    
-  }}
-   />
-      {/* 🔥 MARCA D'ÁGUA */}
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ position: "relative", width: "100%", maxWidth: 900 }}
+    >
+      <Swiper
+        spaceBetween={10}
+        slidesPerView={1}
+        initialSlide={imagemAtual}
+        onSlideChange={(swiper) =>
+          setImagemAtual(swiper.activeIndex)
+        }
+      >
+        {imagens.map((img, index) => (
+          <SwiperSlide key={index}>
+            <img
+              src={img}
+              style={{
+                width: "100%",
+                height: "auto",
+                borderRadius: 10,
+              }}
+            />
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      {/* WATERMARK */}
       <div
-  style={{
-    position: "absolute",
-    bottom: 60,
-    left: 0,
-    width: "100%",
-    textAlign: "center",
-    fontSize: "clamp(12px, 2.5vw, 18px)",
-    fontWeight: "bold",
-    color: "rgba(255,255,255,0.35)",
-    pointerEvents: "none",
-    letterSpacing: 1,
-  }}
->
-  DOMINIOSEMINOVOS.COM.BR
-</div>
-
+        style={{
+          position: "absolute",
+          bottom: 20,
+          width: "100%",
+          textAlign: "center",
+          color: "rgba(255,255,255,0.35)",
+          fontWeight: "bold",
+          pointerEvents: "none",
+        }}
+      >
+        DOMINIOSEMINOVOS.COM.BR
+      </div>
     </div>
-
   </div>
 )}
 
