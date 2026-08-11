@@ -30,14 +30,15 @@ export default function DetalheCarro() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ARRASTO COM MOUSE / POINTER
-  const pointerStartX = useRef<number | null>(null);
+  // =========================
+  // CARROSSEL / ARRASTO
+  // =========================
 
-  // ARRASTO COM TOUCH REAL
-  const touchStartX = useRef<number | null>(null);
+  const [arrastoX, setArrastoX] = useState(0);
 
-  // EVITA ABRIR FULLSCREEN DEPOIS DE UM ARRASTO
-  const arrastou = useRef(false);
+  const inicioArrasto = useRef<number | null>(null);
+  const estaArrastando = useRef(false);
+  const bloqueiaClique = useRef(false);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -50,117 +51,91 @@ export default function DetalheCarro() {
     });
   }, [imagemAtual]);
 
-  function imagemAnterior() {
-    if (!imagens.length) return;
-
-    setImagemAtual((prev) =>
-      prev - 1 < 0
-        ? imagens.length - 1
-        : prev - 1
-    );
-  }
-
-  function proximaImagem() {
-    if (!imagens.length) return;
-
-    setImagemAtual((prev) =>
-      prev + 1 >= imagens.length
-        ? 0
-        : prev + 1
-    );
-  }
-
-  // =========================
-  // POINTER / MOUSE
-  // =========================
-
-  function iniciarPointer(
+  function iniciarArrasto(
     e: React.PointerEvent<HTMLDivElement>
   ) {
-    pointerStartX.current = e.clientX;
-    arrastou.current = false;
+    if (imagens.length <= 1) return;
+
+    inicioArrasto.current = e.clientX;
+    estaArrastando.current = true;
+    bloqueiaClique.current = false;
+
+    setArrastoX(0);
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch { }
   }
 
-  function finalizarPointer(
+  function moverArrasto(
     e: React.PointerEvent<HTMLDivElement>
   ) {
-    if (pointerStartX.current === null) return;
-
-    const distancia =
-      e.clientX - pointerStartX.current;
-
-    pointerStartX.current = null;
-
-    // CLIQUE NORMAL
-    if (Math.abs(distancia) < 20) {
-      setFullscreen(true);
+    if (
+      !estaArrastando.current ||
+      inicioArrasto.current === null
+    ) {
       return;
     }
 
-    // ARRASTOU PARA TROCAR FOTO
-    if (Math.abs(distancia) >= 35) {
-      if (distancia < 0) {
-        proximaImagem();
-      } else {
-        imagemAnterior();
-      }
+    const distancia =
+      e.clientX - inicioArrasto.current;
+
+    setArrastoX(distancia);
+
+    if (Math.abs(distancia) > 8) {
+      bloqueiaClique.current = true;
     }
   }
 
-  // =========================
-  // TOUCH
-  // =========================
+  function finalizarArrasto() {
+    if (!estaArrastando.current) return;
 
-  function iniciarTouch(
-    e: React.TouchEvent<HTMLDivElement>
-  ) {
-    touchStartX.current =
-      e.touches[0].clientX;
+    estaArrastando.current = false;
 
-    arrastou.current = false;
-  }
+    const distancia = arrastoX;
 
-  function finalizarTouch(
-    e: React.TouchEvent<HTMLDivElement>
-  ) {
-    if (touchStartX.current === null) return;
+    setArrastoX(0);
+    inicioArrasto.current = null;
 
-    const distancia =
-      e.changedTouches[0].clientX -
-      touchStartX.current;
+    // Foi praticamente um clique
+    if (Math.abs(distancia) < 45) {
+      setTimeout(() => {
+        bloqueiaClique.current = false;
+      }, 50);
 
-    touchStartX.current = null;
-
-    if (Math.abs(distancia) < 35) {
       return;
     }
 
-    arrastou.current = true;
-
+    // ARRASTOU PARA ESQUERDA = PRÓXIMA
     if (distancia < 0) {
-      proximaImagem();
-    } else {
-      imagemAnterior();
+      setImagemAtual((prev) =>
+        prev + 1 >= imagens.length
+          ? 0
+          : prev + 1
+      );
+    }
+
+    // ARRASTOU PARA DIREITA = ANTERIOR
+    if (distancia > 0) {
+      setImagemAtual((prev) =>
+        prev - 1 < 0
+          ? imagens.length - 1
+          : prev - 1
+      );
     }
 
     setTimeout(() => {
-      arrastou.current = false;
+      bloqueiaClique.current = false;
     }, 300);
   }
 
-  // =========================
-  // CLIQUE NA FOTO
-  // =========================
-
   function abrirFullscreen() {
-    if (arrastou.current) return;
+    if (bloqueiaClique.current) return;
 
     setFullscreen(true);
   }
+
+  // =========================
 
   if (!carro) {
     return (
@@ -179,47 +154,47 @@ export default function DetalheCarro() {
         </div>
 
         <style jsx>{`
-        .loading-neon {
-          position: relative;
-          width: 70px;
-          height: 70px;
-          animation: girar 1.2s linear infinite;
-        }
-
-        .loading-neon span {
-          position: absolute;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #00aaff;
-          box-shadow:
-            0 0 8px #00aaff,
-            0 0 16px #00aaff,
-            0 0 25px #008cff;
-        }
-
-        .loading-neon span:first-child {
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-        }
-
-        .loading-neon span:last-child {
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-        }
-
-        @keyframes girar {
-          from {
-            transform: rotate(0deg);
+          .loading-neon {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            animation: girar 1.2s linear infinite;
           }
 
-          to {
-            transform: rotate(360deg);
+          .loading-neon span {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00aaff;
+            box-shadow:
+              0 0 8px #00aaff,
+              0 0 16px #00aaff,
+              0 0 25px #008cff;
           }
-        }
-      `}</style>
+
+          .loading-neon span:first-child {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          .loading-neon span:last-child {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          @keyframes girar {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
       </main>
     );
   }
@@ -231,7 +206,33 @@ export default function DetalheCarro() {
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
-    return url.replace("watch?v=", "embed/");
+
+    try {
+      const parsed = new URL(url);
+
+      let videoId = "";
+
+      if (
+        parsed.hostname.includes("youtube.com") &&
+        parsed.pathname === "/watch"
+      ) {
+        videoId = parsed.searchParams.get("v") || "";
+      } else if (parsed.hostname.includes("youtu.be")) {
+        videoId = parsed.pathname.replace("/", "");
+      } else if (parsed.pathname.startsWith("/shorts/")) {
+        videoId = parsed.pathname.split("/shorts/")[1]?.split("/")[0] || "";
+      } else if (parsed.pathname.startsWith("/embed/")) {
+        videoId = parsed.pathname.split("/embed/")[1]?.split("/")[0] || "";
+      } else if (parsed.pathname.startsWith("/live/")) {
+        videoId = parsed.pathname.split("/live/")[1]?.split("/")[0] || "";
+      }
+
+      if (!videoId) return url;
+
+      return `https://www.youtube.com/embed/${videoId}`;
+    } catch {
+      return url;
+    }
   };
 
   return (
@@ -246,14 +247,19 @@ export default function DetalheCarro() {
           ← Voltar
         </button>
 
-        {/* IMAGEM PRINCIPAL */}
+        {/* IMAGEM PRINCIPAL COM DESLIZE */}
         <div
-          onPointerDown={iniciarPointer}
-          onPointerUp={finalizarPointer}
-          onTouchStart={iniciarTouch}
-          onTouchEnd={finalizarTouch}
+          onPointerDown={iniciarArrasto}
+          onPointerMove={moverArrasto}
+          onPointerUp={finalizarArrasto}
+          onPointerCancel={finalizarArrasto}
+          onClick={abrirFullscreen}
           style={{
             position: "relative",
+            width: "100%",
+            height: "40vh",
+            overflow: "hidden",
+            borderRadius: 10,
             touchAction: "pan-y",
             cursor:
               imagens.length > 1
@@ -261,19 +267,48 @@ export default function DetalheCarro() {
                 : "pointer",
           }}
         >
-          <img
-            src={
-              imagens[imagemAtual] ||
-              "/logo.png"
-            }
-            onClick={abrirFullscreen}
-            draggable={false}
-            style={{
-              ...mainImage,
-              userSelect: "none",
-              WebkitUserSelect: "none",
-            }}
-          />
+          {imagens.length > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%",
+                transform: `translateX(calc(-${imagemAtual * 100}% + ${arrastoX}px))`,
+                transition: estaArrastando.current
+                  ? "none"
+                  : "transform 0.35s ease",
+              }}
+            >
+              {imagens.map((img, index) => (
+                <img
+                  key={index}
+                  src={img}
+                  draggable={false}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    flex: "0 0 100%",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    pointerEvents: "none",
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <img
+              src="/logo.png"
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+            />
+          )}
 
           {/* INDICADORES */}
           {imagens.length > 1 && (
@@ -359,6 +394,7 @@ export default function DetalheCarro() {
           <p>Ano: {carro.ano}</p>
           <p>KM: {carro.km || "-"}</p>
           <p>Câmbio: {carro.cambio}</p>
+
           <p>
             Combustível:{" "}
             {carro.combustivel || "-"}
@@ -523,7 +559,7 @@ Troca: ${temTroca ? "Sim" : "Não"}`
                   carro.video
                 )}
                 width="100%"
-                height="250"
+                height="550"
                 style={{
                   borderRadius: 10,
                 }}
@@ -590,14 +626,6 @@ const backBtn = {
   color: "white",
 };
 
-const mainImage = {
-  width: "100%",
-  height: "42vh",
-  objectFit: "cover" as const,
-  borderRadius: 10,
-  cursor: "pointer",
-};
-
 const thumbWrapper = {
   display: "flex",
   alignItems: "center",
@@ -613,8 +641,8 @@ const thumbScroll = {
 };
 
 const videoBtn = {
-  minWidth: 130,
-  height: 75,
+  minWidth: 100,
+  height: 68,
   background: "#000",
   borderRadius: 6,
   display: "flex",

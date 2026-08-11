@@ -16,7 +16,18 @@ export default function EditarCarro() {
   const [form, setForm] = useState<any>(null);
   const [imagemAtual, setImagemAtual] = useState(0);
 
+  // NOVO: CONTROLE DA ANIMAÇÃO
+  const [carregandoImagem, setCarregandoImagem] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // MINIATURAS
+  const miniaturasRef = useRef<HTMLDivElement>(null);
+
+  // TOUCH / ARRASTO DA FOTO PRINCIPAL
+  const [arrastoX, setArrastoX] = useState(0);
+  const inicioArrasto = useRef<number | null>(null);
+  const estaArrastando = useRef(false);
 
   useEffect(() => {
     if (carro) {
@@ -27,8 +38,103 @@ export default function EditarCarro() {
     }
   }, [carro]);
 
+  // FAZ AS MINIATURAS ACOMPANHAREM A FOTO PRINCIPAL
+  useEffect(() => {
+    if (!miniaturasRef.current) return;
+
+    const miniatura = miniaturasRef.current.children[
+      imagemAtual
+    ] as HTMLElement | undefined;
+
+    if (!miniatura) return;
+
+    miniatura.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [imagemAtual]);
+
   function atualizar(campo: string, valor: any) {
     setForm((prev: any) => ({ ...prev, [campo]: valor }));
+  }
+
+  // =========================
+  // TOUCH DA FOTO PRINCIPAL
+  // =========================
+
+  function iniciarArrasto(
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (!form?.imagens || form.imagens.length <= 1) return;
+
+    inicioArrasto.current = e.clientX;
+    estaArrastando.current = true;
+    setArrastoX(0);
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch { }
+  }
+
+  function moverArrasto(
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (
+      !estaArrastando.current ||
+      inicioArrasto.current === null
+    ) {
+      return;
+    }
+
+    const distancia =
+      e.clientX - inicioArrasto.current;
+
+    setArrastoX(distancia);
+  }
+
+  function finalizarArrasto() {
+    if (!estaArrastando.current) return;
+
+    estaArrastando.current = false;
+
+    const distancia = arrastoX;
+
+    inicioArrasto.current = null;
+    setArrastoX(0);
+
+    if (!form?.imagens || form.imagens.length <= 1) {
+      return;
+    }
+
+    // SE ARRASTOU POUCO, VOLTA PARA A FOTO ATUAL
+    if (Math.abs(distancia) < 45) {
+      return;
+    }
+
+    // ESQUERDA = PRÓXIMA FOTO
+    if (distancia < 0) {
+      setImagemAtual((prev) =>
+        prev + 1 >= form.imagens.length
+          ? 0
+          : prev + 1
+      );
+    }
+
+    // DIREITA = FOTO ANTERIOR
+    if (distancia > 0) {
+      setImagemAtual((prev) =>
+        prev - 1 < 0
+          ? form.imagens.length - 1
+          : prev - 1
+      );
+    }
+  }
+
+  function cancelarArrasto() {
+    estaArrastando.current = false;
+    inicioArrasto.current = null;
+    setArrastoX(0);
   }
 
   // COMPACTAR IMAGEM
@@ -78,7 +184,7 @@ export default function EditarCarro() {
             resolve(blob);
           },
           "image/webp",
-          0.78
+          0.72
         );
       };
 
@@ -95,6 +201,9 @@ export default function EditarCarro() {
   async function uploadImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    // NOVO: LIGA AS BOLINHAS
+    setCarregandoImagem(true);
 
     const novasUrls: string[] = [];
 
@@ -115,6 +224,10 @@ export default function EditarCarro() {
         if (error) {
           console.log(error);
           alert("Erro ao enviar imagem");
+
+          // NOVO: DESLIGA EM CASO DE ERRO
+          setCarregandoImagem(false);
+
           return;
         }
 
@@ -124,6 +237,10 @@ export default function EditarCarro() {
       } catch (error) {
         console.log(error);
         alert("Erro ao processar imagem");
+
+        // NOVO: DESLIGA EM CASO DE ERRO
+        setCarregandoImagem(false);
+
         return;
       }
     }
@@ -131,6 +248,9 @@ export default function EditarCarro() {
     atualizar("imagens", [...form.imagens, ...novasUrls]);
 
     e.target.value = "";
+
+    // NOVO: TERMINOU COM SUCESSO
+    setCarregandoImagem(false);
   }
 
   function excluirImagem(index: number) {
@@ -181,82 +301,95 @@ export default function EditarCarro() {
 
         <h1 style={{ marginBottom: 20 }}>Editar veículo</h1>
 
-        {/* 🔥 IMAGEM COM SETAS */}
-        <div style={{ position: "relative" }}>
-          <img
-            src={form.imagens?.[imagemAtual] || "/logo.png"}
-            style={{
-              width: "100%",
-              height: 360,
-              objectFit: "cover",
-              borderRadius: 10,
-              marginBottom: 10,
-            }}
-          />
-
-          {/* SETA ESQUERDA */}
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                prev - 1 < 0 ? form.imagens.length - 1 : prev - 1
-              )
-            }
-            style={{
-              position: "absolute",
-              left: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "rgba(0,0,0,0.6)",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: 45,
-              height: 45,
-              cursor: "pointer",
-              fontSize: 20,
-            }}
-          >
-            ‹
-          </button>
-
-          {/* SETA DIREITA */}
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                prev + 1 >= form.imagens.length ? 0 : prev + 1
-              )
-            }
-            style={{
-              position: "absolute",
-              right: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "rgba(0,0,0,0.6)",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: 45,
-              height: 45,
-              cursor: "pointer",
-              fontSize: 20,
-            }}
-          >
-            ›
-          </button>
+        {/* 🔥 IMAGEM PRINCIPAL COM TOUCH */}
+        <div
+          onPointerDown={iniciarArrasto}
+          onPointerMove={moverArrasto}
+          onPointerUp={finalizarArrasto}
+          onPointerCancel={cancelarArrasto}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: 360,
+            overflow: "hidden",
+            borderRadius: 10,
+            marginBottom: 10,
+            touchAction: "pan-y",
+            cursor:
+              form.imagens?.length > 1
+                ? "grab"
+                : "default",
+          }}
+        >
+          {form.imagens?.length > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%",
+                transform: `translateX(calc(-${imagemAtual * 100}% + ${arrastoX}px))`,
+                transition: estaArrastando.current
+                  ? "none"
+                  : "transform 0.35s ease",
+              }}
+            >
+              {form.imagens.map((img: string, index: number) => (
+                <img
+                  key={index}
+                  src={img}
+                  draggable={false}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    flex: "0 0 100%",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    pointerEvents: "none",
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <img
+              src="/logo.png"
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+            />
+          )}
         </div>
 
-        {/* MINIATURAS */}
+        {/* MINIATURAS - CARROSSEL HORIZONTAL */}
         <div
+          ref={miniaturasRef}
           style={{
             display: "flex",
             gap: 10,
-            flexWrap: "wrap",
+            overflowX: "auto",
+            overflowY: "hidden",
             marginBottom: 20,
+            paddingTop: 5,
+            paddingBottom: 8,
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x",
+            scrollbarWidth: "none",
           }}
         >
           {(Array.isArray(form.imagens) ? form.imagens : []).map(
             (img: string, index: number) => (
-              <div key={index} style={{ position: "relative" }}>
+              <div
+                key={index}
+                style={{
+                  position: "relative",
+                  flexShrink: 0,
+                }}
+              >
                 <img
                   src={img}
                   onClick={() => setImagemAtual(index)}
@@ -269,7 +402,7 @@ export default function EditarCarro() {
                     border:
                       imagemAtual === index
                         ? "2px solid #3b82f6"
-                        : "none",
+                        : "2px solid transparent",
                   }}
                 />
 
@@ -456,6 +589,70 @@ export default function EditarCarro() {
         </div>
 
       </div>
+
+      {/* NOVO: ANIMAÇÃO ENQUANTO COMPACTA E ENVIA */}
+      {carregandoImagem && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.85)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div className="loading-neon-upload">
+            <span></span>
+            <span></span>
+          </div>
+
+          <style jsx>{`
+            .loading-neon-upload {
+              position: relative;
+              width: 70px;
+              height: 70px;
+              animation: girarUpload 0.55s linear infinite;
+            }
+
+            .loading-neon-upload span {
+              position: absolute;
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              background: #00aaff;
+              box-shadow:
+                0 0 8px #00aaff,
+                0 0 16px #00aaff,
+                0 0 25px #008cff;
+            }
+
+            .loading-neon-upload span:first-child {
+              top: 0;
+              left: 50%;
+              transform: translateX(-50%);
+            }
+
+            .loading-neon-upload span:last-child {
+              bottom: 0;
+              left: 50%;
+              transform: translateX(-50%);
+            }
+
+            @keyframes girarUpload {
+              from {
+                transform: rotate(0deg);
+              }
+
+              to {
+                transform: rotate(360deg);
+              }
+            }
+          `}</style>
+        </div>
+      )}
+
     </main>
   );
 }

@@ -23,6 +23,9 @@ export default function NovoCarro() {
 
   const [imagens, setImagens] = useState<string[]>([]);
 
+  // NOVO: MOSTRA ANIMAÇÃO ENQUANTO COMPACTA E ENVIA
+  const [carregandoImagem, setCarregandoImagem] = useState(false);
+
   // COMPACTAR IMAGEM ANTES DE ENVIAR AO SUPABASE
   async function compactarImagem(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -85,9 +88,13 @@ export default function NovoCarro() {
   }
 
   // UPLOAD SUPABASE STORAGE
-  async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
+  async function adicionarImagem(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
     const files = e.target.files;
     if (!files) return;
+
+    setCarregandoImagem(true);
 
     const urls: string[] = [];
 
@@ -110,6 +117,7 @@ export default function NovoCarro() {
         if (error) {
           console.log(error);
           alert("Erro ao enviar imagem");
+          setCarregandoImagem(false);
           return;
         }
 
@@ -119,11 +127,16 @@ export default function NovoCarro() {
       } catch (error) {
         console.log(error);
         alert("Erro ao processar imagem");
+        setCarregandoImagem(false);
         return;
       }
     }
 
     setImagens((prev) => [...prev, ...urls]);
+
+    setCarregandoImagem(false);
+
+    e.target.value = "";
   }
 
   function excluirImagem(index: number) {
@@ -135,7 +148,7 @@ export default function NovoCarro() {
     }
   }
 
-  // SALVAR CARRO (CORRIGIDO)
+  // SALVAR CARRO
   async function salvarCarro() {
     if (!nome || !preco) {
       alert("Preencha pelo menos nome e preço");
@@ -164,7 +177,10 @@ export default function NovoCarro() {
     <main style={styles.main}>
       <div style={styles.container}>
 
-        <button onClick={() => router.push("/admin")} style={styles.back}>
+        <button
+          onClick={() => router.push("/admin")}
+          style={styles.back}
+        >
           ← Voltar
         </button>
 
@@ -174,9 +190,9 @@ export default function NovoCarro() {
             src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => {
               if (imagens.length === 0) {
-                document.querySelector<HTMLInputElement>(
-                  'input[type="file"]'
-                )?.click();
+                document
+                  .querySelector<HTMLInputElement>('input[type="file"]')
+                  ?.click();
               } else {
                 setFullscreen(true);
               }
@@ -213,7 +229,10 @@ export default function NovoCarro() {
         {/* MINIATURAS */}
         <div style={styles.thumbs}>
           {imagens.map((img, i) => (
-            <div key={i} style={{ position: "relative" }}>
+            <div
+              key={i}
+              style={{ position: "relative" }}
+            >
               <img
                 src={img}
                 onClick={() => setImagemAtual(i)}
@@ -305,15 +324,78 @@ export default function NovoCarro() {
             style={styles.input}
           />
 
-          <button onClick={salvarCarro} style={styles.save}>
+          <button
+            onClick={salvarCarro}
+            style={styles.save}
+          >
             Salvar veículo
           </button>
         </div>
       </div>
 
+      {/* FULLSCREEN */}
       {fullscreen && (
-        <div onClick={() => setFullscreen(false)} style={styles.fullscreen}>
-          <img src={imagens[imagemAtual]} style={styles.fullImg} />
+        <div
+          onClick={() => setFullscreen(false)}
+          style={styles.fullscreen}
+        >
+          <img
+            src={imagens[imagemAtual]}
+            style={styles.fullImg}
+          />
+        </div>
+      )}
+
+      {/* ANIMAÇÃO DE COMPACTAÇÃO / UPLOAD */}
+      {carregandoImagem && (
+        <div style={styles.loadingOverlay}>
+          <div className="loading-neon-upload">
+            <span></span>
+            <span></span>
+          </div>
+
+          <style jsx>{`
+            .loading-neon-upload {
+              position: relative;
+              width: 70px;
+              height: 70px;
+              animation: girarUpload 0.55s linear infinite;
+            }
+
+            .loading-neon-upload span {
+              position: absolute;
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              background: #00aaff;
+              box-shadow:
+                0 0 8px #00aaff,
+                0 0 16px #00aaff,
+                0 0 25px #008cff;
+            }
+
+            .loading-neon-upload span:first-child {
+              top: 0;
+              left: 50%;
+              transform: translateX(-50%);
+            }
+
+            .loading-neon-upload span:last-child {
+              bottom: 0;
+              left: 50%;
+              transform: translateX(-50%);
+            }
+
+            @keyframes girarUpload {
+              from {
+                transform: rotate(0deg);
+              }
+
+              to {
+                transform: rotate(360deg);
+              }
+            }
+          `}</style>
         </div>
       )}
     </main>
@@ -431,10 +513,21 @@ const styles: any = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 9998,
   },
 
   fullImg: {
     maxWidth: "95%",
     maxHeight: "95%",
+  },
+
+  loadingOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,23,42,0.85)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
   },
 };
