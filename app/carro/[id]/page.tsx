@@ -13,7 +13,6 @@ export default function DetalheCarro() {
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
 
-  // ✅ IMAGENS (CORRETO E LIMPO)
   const imagens = Array.isArray(carro?.imagens)
     ? carro.imagens
     : [];
@@ -31,6 +30,15 @@ export default function DetalheCarro() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // ARRASTO COM MOUSE / POINTER
+  const pointerStartX = useRef<number | null>(null);
+
+  // ARRASTO COM TOUCH REAL
+  const touchStartX = useRef<number | null>(null);
+
+  // EVITA ABRIR FULLSCREEN DEPOIS DE UM ARRASTO
+  const arrastou = useRef(false);
+
   useEffect(() => {
     if (!scrollRef.current) return;
 
@@ -42,11 +50,184 @@ export default function DetalheCarro() {
     });
   }, [imagemAtual]);
 
-  if (!carro) {
-    return <p style={{ color: "white" }}>Carro não encontrado</p>;
+  function imagemAnterior() {
+    if (!imagens.length) return;
+
+    setImagemAtual((prev) =>
+      prev - 1 < 0
+        ? imagens.length - 1
+        : prev - 1
+    );
   }
 
-  const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
+  function proximaImagem() {
+    if (!imagens.length) return;
+
+    setImagemAtual((prev) =>
+      prev + 1 >= imagens.length
+        ? 0
+        : prev + 1
+    );
+  }
+
+  // =========================
+  // POINTER / MOUSE
+  // =========================
+
+  function iniciarPointer(
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    pointerStartX.current = e.clientX;
+    arrastou.current = false;
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch { }
+  }
+
+  function finalizarPointer(
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (pointerStartX.current === null) return;
+
+    const distancia =
+      e.clientX - pointerStartX.current;
+
+    pointerStartX.current = null;
+
+    // CLIQUE NORMAL
+    if (Math.abs(distancia) < 20) {
+      setFullscreen(true);
+      return;
+    }
+
+    // ARRASTOU PARA TROCAR FOTO
+    if (Math.abs(distancia) >= 35) {
+      if (distancia < 0) {
+        proximaImagem();
+      } else {
+        imagemAnterior();
+      }
+    }
+  }
+
+  // =========================
+  // TOUCH
+  // =========================
+
+  function iniciarTouch(
+    e: React.TouchEvent<HTMLDivElement>
+  ) {
+    touchStartX.current =
+      e.touches[0].clientX;
+
+    arrastou.current = false;
+  }
+
+  function finalizarTouch(
+    e: React.TouchEvent<HTMLDivElement>
+  ) {
+    if (touchStartX.current === null) return;
+
+    const distancia =
+      e.changedTouches[0].clientX -
+      touchStartX.current;
+
+    touchStartX.current = null;
+
+    if (Math.abs(distancia) < 35) {
+      return;
+    }
+
+    arrastou.current = true;
+
+    if (distancia < 0) {
+      proximaImagem();
+    } else {
+      imagemAnterior();
+    }
+
+    setTimeout(() => {
+      arrastou.current = false;
+    }, 300);
+  }
+
+  // =========================
+  // CLIQUE NA FOTO
+  // =========================
+
+  function abrirFullscreen() {
+    if (arrastou.current) return;
+
+    setFullscreen(true);
+  }
+
+  if (!carro) {
+    return (
+      <main
+        style={{
+          backgroundColor: "#0f172a",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="loading-neon">
+          <span></span>
+          <span></span>
+        </div>
+
+        <style jsx>{`
+        .loading-neon {
+          position: relative;
+          width: 70px;
+          height: 70px;
+          animation: girar 1.2s linear infinite;
+        }
+
+        .loading-neon span {
+          position: absolute;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00aaff;
+          box-shadow:
+            0 0 8px #00aaff,
+            0 0 16px #00aaff,
+            0 0 25px #008cff;
+        }
+
+        .loading-neon span:first-child {
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .loading-neon span:last-child {
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        @keyframes girar {
+          from {
+            transform: rotate(0deg);
+          }
+
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+      </main>
+    );
+  }
+
+  const linkWhatsapp =
+    `https://wa.me/5511981223969?text=${encodeURIComponent(
+      `Olá, tenho interesse no ${carro.nome} ${carro.ano}`
+    )}`;
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
@@ -58,53 +239,82 @@ export default function DetalheCarro() {
       <div style={container}>
 
         {/* VOLTAR */}
-        <button onClick={() => router.push("/")} style={backBtn}>
+        <button
+          onClick={() => router.push("/")}
+          style={backBtn}
+        >
           ← Voltar
         </button>
 
         {/* IMAGEM PRINCIPAL */}
-        <div style={{ position: "relative" }}>
+        <div
+          onPointerDown={iniciarPointer}
+          onPointerUp={finalizarPointer}
+          onTouchStart={iniciarTouch}
+          onTouchEnd={finalizarTouch}
+          style={{
+            position: "relative",
+            touchAction: "pan-y",
+            cursor:
+              imagens.length > 1
+                ? "grab"
+                : "pointer",
+          }}
+        >
           <img
-            src={imagens[imagemAtual] || "/logo.png"}
-            onClick={() => setFullscreen(true)}
-            style={mainImage}
+            src={
+              imagens[imagemAtual] ||
+              "/logo.png"
+            }
+            onClick={abrirFullscreen}
+            draggable={false}
+            style={{
+              ...mainImage,
+              userSelect: "none",
+              WebkitUserSelect: "none",
+            }}
           />
 
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                prev - 1 < 0 ? imagens.length - 1 : prev - 1
-              )
-            }
-            style={arrowLeft}
-          >
-            ‹
-          </button>
-
-          <button
-            onClick={() =>
-              setImagemAtual((prev) =>
-                !imagens.length
-                  ? 0
-                  : prev + 1 >= imagens.length
-                  ? 0
-                  : prev + 1
-              )
-            }
-            style={arrowRight}
-          >
-            ›
-          </button>
+          {/* INDICADORES */}
+          {imagens.length > 1 && (
+            <div style={dotsContainer}>
+              {imagens.map((_, index) => (
+                <div
+                  key={index}
+                  style={{
+                    width:
+                      imagemAtual === index
+                        ? 8
+                        : 6,
+                    height:
+                      imagemAtual === index
+                        ? 8
+                        : 6,
+                    borderRadius: "50%",
+                    background:
+                      imagemAtual === index
+                        ? "white"
+                        : "rgba(255,255,255,0.5)",
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* MINIATURAS */}
         <div style={thumbWrapper}>
-          <div ref={scrollRef} style={thumbScroll}>
+          <div
+            ref={scrollRef}
+            style={thumbScroll}
+          >
             {imagens.map((img, index) => (
               <img
                 key={index}
                 src={img}
-                onClick={() => setImagemAtual(index)}
+                onClick={() =>
+                  setImagemAtual(index)
+                }
                 style={{
                   width: 80,
                   height: 60,
@@ -122,7 +332,12 @@ export default function DetalheCarro() {
           </div>
 
           {carro.video && (
-            <div onClick={() => setVideoOpen(true)} style={videoBtn}>
+            <div
+              onClick={() =>
+                setVideoOpen(true)
+              }
+              style={videoBtn}
+            >
               <div style={playOuter}>
                 <div style={playIcon} />
               </div>
@@ -132,31 +347,60 @@ export default function DetalheCarro() {
 
         {/* INFO */}
         <div style={infoBox}>
-          <h1 style={{ fontSize: 24, fontWeight: "bold" }}>{carro.nome}</h1>
+          <h1
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+            }}
+          >
+            {carro.nome}
+          </h1>
 
           <p>Ano: {carro.ano}</p>
           <p>KM: {carro.km || "-"}</p>
           <p>Câmbio: {carro.cambio}</p>
-          <p>Combustível: {carro.combustivel || "-"}</p>
+          <p>
+            Combustível:{" "}
+            {carro.combustivel || "-"}
+          </p>
 
-          <p style={{ fontSize: 22, color: "#3b82f6", fontWeight: "bold" }}>
+          <p
+            style={{
+              fontSize: 22,
+              color: "#3b82f6",
+              fontWeight: "bold",
+            }}
+          >
             {formatarPreco(carro.preco)}
           </p>
 
           <p style={{ whiteSpace: "pre-wrap" }}>
-            {carro.descricao || "Sem descrição"}
+            {carro.descricao ||
+              "Sem descrição"}
           </p>
 
-          <a href={linkWhatsapp} target="_blank" style={whatsBtn}>
+          <a
+            href={linkWhatsapp}
+            target="_blank"
+            style={whatsBtn}
+          >
             WhatsApp
           </a>
 
           {/* SIMULAÇÃO */}
-          <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
+          <div
+            style={{
+              marginTop: 20,
+              display: "grid",
+              gap: 10,
+            }}
+          >
             <input
               placeholder="Valor de entrada"
               value={entrada}
-              onChange={(e) => setEntrada(e.target.value)}
+              onChange={(e) =>
+                setEntrada(e.target.value)
+              }
               style={input}
             />
 
@@ -164,40 +408,59 @@ export default function DetalheCarro() {
               <input
                 type="checkbox"
                 checked={temTroca}
-                onChange={() => setTemTroca(!temTroca)}
+                onChange={() =>
+                  setTemTroca(!temTroca)
+                }
               />{" "}
               Troca
             </label>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {[12, 24, 36, 48, 60].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setParcelas(p)}
-                  style={{
-                    padding: 6,
-                    background: parcelas === p ? "#16a34a" : "#374151",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 6,
-                  }}
-                >
-                  {p}x
-                </button>
-              ))}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              {[12, 24, 36, 48, 60].map(
+                (p) => (
+                  <button
+                    key={p}
+                    onClick={() =>
+                      setParcelas(p)
+                    }
+                    style={{
+                      padding: 6,
+                      background:
+                        parcelas === p
+                          ? "#16a34a"
+                          : "#374151",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {p}x
+                  </button>
+                )
+              )}
             </div>
 
             <input
               placeholder="CPF"
               value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
+              onChange={(e) =>
+                setCpf(e.target.value)
+              }
               style={input}
             />
 
             <input
               type="date"
               value={nascimento}
-              onChange={(e) => setNascimento(e.target.value)}
+              onChange={(e) =>
+                setNascimento(e.target.value)
+              }
               style={input}
             />
 
@@ -205,7 +468,9 @@ export default function DetalheCarro() {
               <input
                 type="checkbox"
                 checked={temCnh}
-                onChange={() => setTemCnh(!temCnh)}
+                onChange={() =>
+                  setTemCnh(!temCnh)
+                }
               />{" "}
               CNH
             </label>
@@ -232,17 +497,36 @@ Troca: ${temTroca ? "Sim" : "Não"}`
 
         {/* VIDEO MODAL */}
         {videoOpen && (
-          <div onClick={() => setVideoOpen(false)} style={overlay}>
-            <div onClick={(e) => e.stopPropagation()} style={modal}>
-              <button onClick={() => setVideoOpen(false)} style={closeBtn}>
+          <div
+            onClick={() =>
+              setVideoOpen(false)
+            }
+            style={overlay}
+          >
+            <div
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+              style={modal}
+            >
+              <button
+                onClick={() =>
+                  setVideoOpen(false)
+                }
+                style={closeBtn}
+              >
                 ✕
               </button>
 
               <iframe
-                src={getEmbedUrl(carro.video)}
+                src={getEmbedUrl(
+                  carro.video
+                )}
                 width="100%"
                 height="250"
-                style={{ borderRadius: 10 }}
+                style={{
+                  borderRadius: 10,
+                }}
                 allowFullScreen
               />
             </div>
@@ -251,10 +535,28 @@ Troca: ${temTroca ? "Sim" : "Não"}`
 
         {/* FULLSCREEN */}
         {fullscreen && (
-          <div onClick={() => setFullscreen(false)} style={overlay}>
+          <div
+            onClick={() =>
+              setFullscreen(false)
+            }
+            style={{
+              ...overlay,
+              cursor: "pointer",
+            }}
+          >
             <img
-              src={imagens[imagemAtual] || "/logo.png"}
-              style={{ maxWidth: "95%", maxHeight: "95%" }}
+              src={
+                imagens[imagemAtual] ||
+                "/logo.png"
+              }
+              draggable={false}
+              style={{
+                maxWidth: "95%",
+                maxHeight: "95%",
+                objectFit: "contain",
+                userSelect: "none",
+                WebkitUserSelect: "none",
+              }}
             />
           </div>
         )}
@@ -290,9 +592,10 @@ const backBtn = {
 
 const mainImage = {
   width: "100%",
-  height: "40vh",
-  objectFit: "cover",
+  height: "42vh",
+  objectFit: "cover" as const,
   borderRadius: 10,
+  cursor: "pointer",
 };
 
 const thumbWrapper = {
@@ -305,7 +608,7 @@ const thumbWrapper = {
 const thumbScroll = {
   display: "flex",
   gap: 10,
-  overflowX: "auto",
+  overflowX: "auto" as const,
   flex: 1,
 };
 
@@ -326,7 +629,7 @@ const playOuter = {
   height: 20,
   background: "red",
   borderRadius: 4,
-  position: "relative",
+  position: "relative" as const,
 };
 
 const playIcon = {
@@ -335,7 +638,7 @@ const playIcon = {
   borderTop: "6px solid transparent",
   borderBottom: "6px solid transparent",
   borderLeft: "10px solid white",
-  position: "absolute",
+  position: "absolute" as const,
   top: "50%",
   left: "50%",
   transform: "translate(-40%, -50%)",
@@ -362,33 +665,27 @@ const whatsBtn = {
   padding: 12,
   background: "#16a34a",
   color: "white",
-  textAlign: "center",
+  textAlign: "center" as const,
   borderRadius: 8,
   textDecoration: "none",
   fontWeight: "bold",
 };
 
-const arrowLeft = {
-  position: "absolute",
-  left: 5,
-  top: "50%",
-  transform: "translateY(-50%)",
-  background: "rgba(0,0,0,0.5)",
-  color: "white",
-  border: "none",
-  borderRadius: "50%",
-  width: 40,
-  height: 40,
-};
-
-const arrowRight = {
-  ...arrowLeft,
-  left: "auto",
-  right: 5,
+const dotsContainer = {
+  position: "absolute" as const,
+  bottom: 10,
+  left: "50%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  gap: 5,
+  background: "rgba(0,0,0,0.35)",
+  padding: "4px 6px",
+  borderRadius: 20,
+  zIndex: 5,
 };
 
 const overlay = {
-  position: "fixed",
+  position: "fixed" as const,
   inset: 0,
   background: "rgba(0,0,0,0.9)",
   display: "flex",

@@ -3,23 +3,12 @@
 import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
 import { useCarros } from "../data/useCarros";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
 
 export default function Home() {
   const router = useRouter();
   const { carros } = useCarros();
-
-  // IMAGEM ATUAL DE CADA CARRO
-  const [imagemAtualPorCarro, setImagemAtualPorCarro] = useState<
-    Record<number, number>
-  >({});
-
-  // POSIÇÃO INICIAL DO ARRASTO
-  const pointerStartX = useRef<Record<number, number>>({});
-
-  // EVITA ABRIR DETALHES QUANDO O USUÁRIO ESTAVA ARRASTANDO
-  const bloqueandoClique = useRef(false);
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
@@ -57,96 +46,64 @@ export default function Home() {
     return b.id - a.id;
   });
 
-  // GARANTE QUE IMAGENS SEMPRE SEJAM ARRAY
-  function obterImagens(car: any): string[] {
-    if (Array.isArray(car.imagens)) {
-      return car.imagens;
-    }
-
-    if (typeof car.imagens === "string") {
-      try {
-        const imagens = JSON.parse(car.imagens);
-
-        if (Array.isArray(imagens)) {
-          return imagens;
-        }
-      } catch {
-        return [];
-      }
-    }
-
-    return [];
-  }
-
-  // INÍCIO DO ARRASTO
-  function iniciarArrasto(
-    carId: number,
-    e: React.PointerEvent<HTMLDivElement>
-  ) {
-    pointerStartX.current[carId] = e.clientX;
-
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  }
-
-  // FINAL DO ARRASTO
-  function finalizarArrasto(
-    carId: number,
-    quantidadeImagens: number,
-    e: React.PointerEvent<HTMLDivElement>
-  ) {
-    if (quantidadeImagens <= 1) return;
-
-    const inicio = pointerStartX.current[carId];
-
-    if (inicio === undefined) return;
-
-    const fim = e.clientX;
-    const distancia = fim - inicio;
-
-    delete pointerStartX.current[carId];
-
-    // SÓ CONSIDERA ARRASTO SE PASSAR DE 40 PX
-    if (Math.abs(distancia) < 40) return;
-
-    bloqueandoClique.current = true;
-
-    const atual = imagemAtualPorCarro[carId] || 0;
-
-    // ARRASTOU PARA ESQUERDA
-    if (distancia < 0) {
-      const proxima =
-        atual + 1 >= quantidadeImagens
-          ? 0
-          : atual + 1;
-
-      setImagemAtualPorCarro((prev) => ({
-        ...prev,
-        [carId]: proxima,
-      }));
-    }
-
-    // ARRASTOU PARA DIREITA
-    if (distancia > 0) {
-      const anterior =
-        atual - 1 < 0
-          ? quantidadeImagens - 1
-          : atual - 1;
-
-      setImagemAtualPorCarro((prev) => ({
-        ...prev,
-        [carId]: anterior,
-      }));
-    }
-
-    setTimeout(() => {
-      bloqueandoClique.current = false;
-    }, 250);
-  }
-
   if (!carros?.length) {
     return (
-      <main style={{ color: "white", padding: 20 }}>
-        Nenhum veículo cadastrado
+      <main
+        style={{
+          backgroundColor: "#0f172a",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="loading-neon">
+          <span></span>
+          <span></span>
+        </div>
+
+        <style jsx>{`
+        .loading-neon {
+          position: relative;
+          width: 70px;
+          height: 70px;
+          animation: girar 1.2s linear infinite;
+        }
+
+        .loading-neon span {
+          position: absolute;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00aaff;
+          box-shadow:
+            0 0 8px #00aaff,
+            0 0 16px #00aaff,
+            0 0 25px #008cff;
+        }
+
+        .loading-neon span:first-child {
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .loading-neon span:last-child {
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        @keyframes girar {
+          from {
+            transform: rotate(0deg);
+          }
+
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
       </main>
     );
   }
@@ -199,16 +156,6 @@ export default function Home() {
             const status = car.status || "disponivel";
             const isVendido = status === "vendido";
 
-            const imagens = obterImagens(car);
-
-            const imagemAtual =
-              imagemAtualPorCarro[car.id] || 0;
-
-            const imagem =
-              imagens[imagemAtual] ||
-              imagens[0] ||
-              "/logo.png";
-
             return (
               <div
                 key={car.id}
@@ -249,7 +196,6 @@ export default function Home() {
                 {/* CARD */}
                 <div
                   onClick={() => {
-                    if (bloqueandoClique.current) return;
                     if (isVendido) return;
 
                     sessionStorage.setItem(
@@ -260,89 +206,33 @@ export default function Home() {
                     router.push(`/carro/${car.id}`);
                   }}
                   style={{
-                    cursor: isVendido
-                      ? "not-allowed"
-                      : "pointer",
+                    cursor: isVendido ? "not-allowed" : "pointer",
                     opacity: isVendido ? 0.6 : 1,
                   }}
                 >
-                  {/* FOTO COM TOUCH + MOUSE */}
-                  <div
-                    onPointerDown={(e) =>
-                      iniciarArrasto(car.id, e)
-                    }
-                    onPointerUp={(e) =>
-                      finalizarArrasto(
-                        car.id,
-                        imagens.length,
-                        e
-                      )
+                  <img
+                    src={
+                      Array.isArray(car.imagens)
+                        ? car.imagens[0] || "/logo.png"
+                        : typeof car.imagens === "string"
+                          ? (() => {
+                            try {
+                              const lista = JSON.parse(car.imagens);
+                              return Array.isArray(lista)
+                                ? lista[0] || "/logo.png"
+                                : "/logo.png";
+                            } catch {
+                              return "/logo.png";
+                            }
+                          })()
+                          : "/logo.png"
                     }
                     style={{
-                      position: "relative",
                       width: "100%",
                       height: 180,
-                      overflow: "hidden",
-                      touchAction: "pan-y",
-                      cursor:
-                        imagens.length > 1
-                          ? "grab"
-                          : "pointer",
+                      objectFit: "cover",
                     }}
-                  >
-                    <img
-                      src={imagem}
-                      draggable={false}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        userSelect: "none",
-                        WebkitUserSelect: "none",
-                        pointerEvents: "none",
-                      }}
-                    />
-
-                    {/* INDICADORES DAS FOTOS */}
-                    {imagens.length > 1 && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: 8,
-                          left: "50%",
-                          transform: "translateX(-50%)",
-                          display: "flex",
-                          gap: 5,
-                          background: "rgba(0,0,0,0.35)",
-                          padding: "4px 6px",
-                          borderRadius: 20,
-                        }}
-                      >
-                        {imagens.map(
-                          (_: string, index: number) => (
-                            <div
-                              key={index}
-                              style={{
-                                width:
-                                  imagemAtual === index
-                                    ? 8
-                                    : 6,
-                                height:
-                                  imagemAtual === index
-                                    ? 8
-                                    : 6,
-                                borderRadius: "50%",
-                                background:
-                                  imagemAtual === index
-                                    ? "white"
-                                    : "rgba(255,255,255,0.5)",
-                              }}
-                            />
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  />
 
                   <div style={{ padding: 15 }}>
                     <h2
