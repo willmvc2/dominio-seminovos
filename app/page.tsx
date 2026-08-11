@@ -1,37 +1,33 @@
 "use client";
 
 import Footer from "../components/Footer";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useCarros } from "../data/useCarros";
+import { useEffect, useRef, useState } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
-
-
-async function incrementarCliques(id: number) {
-  const { error } = await supabase.rpc("incrementar_cliques", {
-    carro_id: id,
-  });
-
-  console.log("erro:", error);
-}
 
 export default function Home() {
   const router = useRouter();
+  const { carros } = useCarros();
 
-  const { carros, loading, recarregar } = useCarros();
+  // IMAGEM ATUAL DE CADA CARRO
+  const [imagemAtualPorCarro, setImagemAtualPorCarro] = useState<
+    Record<number, number>
+  >({});
 
-  const carrosSeguros = carros || [];
+  // POSIÇÃO INICIAL DO ARRASTO
+  const pointerStartX = useRef<Record<number, number>>({});
+
+  // EVITA ABRIR DETALHES QUANDO O USUÁRIO ESTAVA ARRASTANDO
+  const bloqueandoClique = useRef(false);
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
-    const atualizar = () => {
-      recarregar();
-    };
+    const atualizar = () => { };
 
     window.addEventListener("carros-updated", atualizar);
     return () => window.removeEventListener("carros-updated", atualizar);
-  }, [recarregar]);
+  }, []);
 
   // 🔥 restaura scroll
   useEffect(() => {
@@ -46,79 +42,114 @@ export default function Home() {
     }
   }, []);
 
-  // 🔵 LOADER (único e correto)
-  if (loading) {
-    return (
-      <div className="loader-container">
-        <div className="orbit">
-          <div className="dot"></div>
-          <div className="dot"></div>
-        </div>
-
-        <style jsx>{`
-          .loader-container {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f172a;
-          }
-
-          .orbit {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            animation: spin 2s linear infinite;
-          }
-
-          .dot {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: #0ea5e9;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
-          }
-
-          .dot:first-child {
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          }
-
-          .dot:last-child {
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          }
-
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  // 🔥 ordenação
+  // 🔥 prioridade status
   const prioridade: any = {
     disponivel: 1,
     preparando: 2,
     vendido: 3,
   };
 
-  const carrosOrdenados = [...carrosSeguros].sort((a, b) => {
+  const carrosOrdenados = [...carros].sort((a, b) => {
     const pA = prioridade[a.status || "disponivel"] || 99;
     const pB = prioridade[b.status || "disponivel"] || 99;
 
     if (pA !== pB) return pA - pB;
-    return (b.id || 0) - (a.id || 0);
+    return b.id - a.id;
   });
+
+  // GARANTE QUE IMAGENS SEMPRE SEJAM ARRAY
+  function obterImagens(car: any): string[] {
+    if (Array.isArray(car.imagens)) {
+      return car.imagens;
+    }
+
+    if (typeof car.imagens === "string") {
+      try {
+        const imagens = JSON.parse(car.imagens);
+
+        if (Array.isArray(imagens)) {
+          return imagens;
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  }
+
+  // INÍCIO DO ARRASTO
+  function iniciarArrasto(
+    carId: number,
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    pointerStartX.current[carId] = e.clientX;
+
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  // FINAL DO ARRASTO
+  function finalizarArrasto(
+    carId: number,
+    quantidadeImagens: number,
+    e: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (quantidadeImagens <= 1) return;
+
+    const inicio = pointerStartX.current[carId];
+
+    if (inicio === undefined) return;
+
+    const fim = e.clientX;
+    const distancia = fim - inicio;
+
+    delete pointerStartX.current[carId];
+
+    // SÓ CONSIDERA ARRASTO SE PASSAR DE 40 PX
+    if (Math.abs(distancia) < 40) return;
+
+    bloqueandoClique.current = true;
+
+    const atual = imagemAtualPorCarro[carId] || 0;
+
+    // ARRASTOU PARA ESQUERDA
+    if (distancia < 0) {
+      const proxima =
+        atual + 1 >= quantidadeImagens
+          ? 0
+          : atual + 1;
+
+      setImagemAtualPorCarro((prev) => ({
+        ...prev,
+        [carId]: proxima,
+      }));
+    }
+
+    // ARRASTOU PARA DIREITA
+    if (distancia > 0) {
+      const anterior =
+        atual - 1 < 0
+          ? quantidadeImagens - 1
+          : atual - 1;
+
+      setImagemAtualPorCarro((prev) => ({
+        ...prev,
+        [carId]: anterior,
+      }));
+    }
+
+    setTimeout(() => {
+      bloqueandoClique.current = false;
+    }, 250);
+  }
+
+  if (!carros?.length) {
+    return (
+      <main style={{ color: "white", padding: 20 }}>
+        Nenhum veículo cadastrado
+      </main>
+    );
+  }
 
   return (
     <main
@@ -138,6 +169,20 @@ export default function Home() {
           flex: 1,
         }}
       >
+        {/* TOPO */}
+        <div style={{ backgroundColor: "black", width: "100%" }}>
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: "0 auto",
+              padding: "15px 10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          ></div>
+        </div>
+
         {/* GRID */}
         <div
           className="grid"
@@ -153,6 +198,16 @@ export default function Home() {
           {carrosOrdenados.map((car) => {
             const status = car.status || "disponivel";
             const isVendido = status === "vendido";
+
+            const imagens = obterImagens(car);
+
+            const imagemAtual =
+              imagemAtualPorCarro[car.id] || 0;
+
+            const imagem =
+              imagens[imagemAtual] ||
+              imagens[0] ||
+              "/logo.png";
 
             return (
               <div
@@ -194,62 +249,108 @@ export default function Home() {
                 {/* CARD */}
                 <div
                   onClick={() => {
-  if (isVendido) return;
+                    if (bloqueandoClique.current) return;
+                    if (isVendido) return;
 
-  console.log("clicou", car.id); // 👈 adiciona isso
+                    sessionStorage.setItem(
+                      "scrollY",
+                      window.scrollY.toString()
+                    );
 
-  incrementarCliques(car.id);
-
-  sessionStorage.setItem(
-    "scrollY",
-    window.scrollY.toString()
-  );
-
-  router.push(`/carro/${car.id}`);
-}}
+                    router.push(`/carro/${car.id}`);
+                  }}
                   style={{
-                    cursor: isVendido ? "not-allowed" : "pointer",
+                    cursor: isVendido
+                      ? "not-allowed"
+                      : "pointer",
                     opacity: isVendido ? 0.6 : 1,
                   }}
                 >
-                  <div style={{ position: "relative" }}>
-                  
+                  {/* FOTO COM TOUCH + MOUSE */}
+                  <div
+                    onPointerDown={(e) =>
+                      iniciarArrasto(car.id, e)
+                    }
+                    onPointerUp={(e) =>
+                      finalizarArrasto(
+                        car.id,
+                        imagens.length,
+                        e
+                      )
+                    }
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: 180,
+                      overflow: "hidden",
+                      touchAction: "pan-y",
+                      cursor:
+                        imagens.length > 1
+                          ? "grab"
+                          : "pointer",
+                    }}
+                  >
                     <img
-                      src={
-                        Array.isArray(car.imagens) && car.imagens.length > 0
-                          ? car.imagens[0]
-                          : "/logo.png"
-                      }
-                      onContextMenu={(e) => e.preventDefault()}
-                      onDragStart={(e) => e.preventDefault()}
+                      src={imagem}
+                      draggable={false}
                       style={{
                         width: "100%",
-                        height: 180,
+                        height: "100%",
                         objectFit: "cover",
+                        userSelect: "none",
+                        WebkitUserSelect: "none",
+                        pointerEvents: "none",
                       }}
                     />
 
-                    {/* MARCA D'ÁGUA */}
-                    <div
-  style={{
-    position: "absolute",
-    bottom: 8,
-    left: 0,
-    width: "100%",
-    textAlign: "center",
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    fontWeight: 500,
-    pointerEvents: "none",
-    userSelect: "none",
-  }}
->
-  DOMINIOSEMINOVOS.COM.BR
-</div>
+                    {/* INDICADORES DAS FOTOS */}
+                    {imagens.length > 1 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 8,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          display: "flex",
+                          gap: 5,
+                          background: "rgba(0,0,0,0.35)",
+                          padding: "4px 6px",
+                          borderRadius: 20,
+                        }}
+                      >
+                        {imagens.map(
+                          (_: string, index: number) => (
+                            <div
+                              key={index}
+                              style={{
+                                width:
+                                  imagemAtual === index
+                                    ? 8
+                                    : 6,
+                                height:
+                                  imagemAtual === index
+                                    ? 8
+                                    : 6,
+                                borderRadius: "50%",
+                                background:
+                                  imagemAtual === index
+                                    ? "white"
+                                    : "rgba(255,255,255,0.5)",
+                              }}
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ padding: 15 }}>
-                    <h2 style={{ color: "white", fontWeight: "bold" }}>
+                    <h2
+                      style={{
+                        color: "white",
+                        fontWeight: "bold",
+                      }}
+                    >
                       {car.nome}
                     </h2>
 
@@ -273,7 +374,9 @@ export default function Home() {
                       disabled={isVendido}
                       onClick={(e) => {
                         e.stopPropagation();
+
                         if (isVendido) return;
+
                         router.push(`/carro/${car.id}`);
                       }}
                       style={{
@@ -284,7 +387,9 @@ export default function Home() {
                         border: "1px solid #3b82f6",
                         color: "#3b82f6",
                         borderRadius: 6,
-                        cursor: isVendido ? "not-allowed" : "pointer",
+                        cursor: isVendido
+                          ? "not-allowed"
+                          : "pointer",
                         fontWeight: "bold",
                         opacity: isVendido ? 0.5 : 1,
                       }}

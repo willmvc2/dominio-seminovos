@@ -1,61 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useCarros } from "../../../data/useCarros";
-import { supabase } from "@/lib/supabase";
-
-async function compressImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      img.src = e.target?.result as string;
-    };
-
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-
-      const maxWidth = 1200;
-
-let width = img.width;
-let height = img.height;
-
-if (width > maxWidth) {
-  const scale = maxWidth / width;
-  width = maxWidth;
-  height = height * scale;
-}
-
-canvas.width = width;
-canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-        },
-        "image/webp",
-        0.7
-      );
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
+import { supabase } from "@/app/lib/supabase";
 
 export default function NovoCarro() {
   const router = useRouter();
-  const { carros } = useCarros();
-
-  const [loading, setLoading] = useState(false);
+  const { salvar } = useCarros();
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+
   const [nome, setNome] = useState("");
   const [ano, setAno] = useState("");
   const [km, setKm] = useState("");
@@ -64,50 +20,110 @@ export default function NovoCarro() {
   const [preco, setPreco] = useState("");
   const [descricao, setDescricao] = useState("");
   const [video, setVideo] = useState("");
-  const [imagens, setImagens] = useState<string[]>([]);
-  
-  useEffect(() => {
-  if (!scrollRef.current) return;
 
-  scrollRef.current.scrollTo({
-    left: imagemAtual * 100,
-    behavior: "smooth",
-  });
-}, [imagemAtual]);
-  
+  const [imagens, setImagens] = useState<string[]>([]);
+
+  // COMPACTAR IMAGEM ANTES DE ENVIAR AO SUPABASE
+  async function compactarImagem(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const urlTemporaria = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(urlTemporaria);
+
+        const MAX_SIZE = 1400;
+
+        let largura = img.width;
+        let altura = img.height;
+
+        // Redimensiona mantendo a proporção
+        if (largura > MAX_SIZE || altura > MAX_SIZE) {
+          if (largura > altura) {
+            altura = Math.round((altura * MAX_SIZE) / largura);
+            largura = MAX_SIZE;
+          } else {
+            largura = Math.round((largura * MAX_SIZE) / altura);
+            altura = MAX_SIZE;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Não foi possível processar a imagem"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, largura, altura);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Erro ao compactar imagem"));
+              return;
+            }
+
+            resolve(blob);
+          },
+          "image/webp",
+          0.72
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(urlTemporaria);
+        reject(new Error("Erro ao carregar imagem"));
+      };
+
+      img.src = urlTemporaria;
+    });
+  }
+
+  // UPLOAD SUPABASE STORAGE
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
-    setLoading(true);
-
     const urls: string[] = [];
 
     for (const file of Array.from(files)) {
-      const compressed = await compressImage(file);
+      try {
+        // COMPACTA A FOTO
+        const imagemCompactada = await compactarImagem(file);
 
-      const nomeArquivo = `${Date.now()}-${Math.random()}.webp`;
+        // Salva sempre como WebP
+        const nomeArquivo = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.webp`;
 
-      const { error } = await supabase.storage
-        .from("carros")
-        .upload(nomeArquivo, compressed);
+        const { error } = await supabase.storage
+          .from("carros")
+          .upload(nomeArquivo, imagemCompactada, {
+            contentType: "image/webp",
+          });
 
-      if (error) {
-        alert("Erro ao enviar imagem");
+        if (error) {
+          console.log(error);
+          alert("Erro ao enviar imagem");
+          return;
+        }
+
+        const url = `https://totdnqrhmgsjqvswujho.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
+
+        urls.push(url);
+      } catch (error) {
         console.log(error);
-        setLoading(false);
+        alert("Erro ao processar imagem");
         return;
       }
-
-      const { data } = supabase.storage
-        .from("carros")
-        .getPublicUrl(nomeArquivo);
-
-      urls.push(data.publicUrl);
     }
 
     setImagens((prev) => [...prev, ...urls]);
-    setLoading(false);
   }
 
   function excluirImagem(index: number) {
@@ -119,40 +135,29 @@ export default function NovoCarro() {
     }
   }
 
+  // SALVAR CARRO (CORRIGIDO)
   async function salvarCarro() {
-    console.log("🔥 CLIQUEI NO SALVAR");
+    if (!nome || !preco) {
+      alert("Preencha pelo menos nome e preço");
+      return;
+    }
 
-    setLoading(true);
-
-    const payload = {
+    const novo = {
       nome,
       ano,
       km,
       cambio,
       combustivel,
+      preco,
+      descricao,
       video,
       imagens,
       status: "disponivel",
-      preco: Number(preco),
-      descricao,
     };
 
-    const { data, error } = await supabase
-      .from("carros")
-      .insert([payload])
-      .select();
+    await salvar(novo);
 
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
-    }
-
-    window.dispatchEvent(new Event("carros-updated"));
-
-    setTimeout(() => {
-      router.push("/admin");
-    }, 200);
+    router.push("/admin");
   }
 
   return (
@@ -163,68 +168,21 @@ export default function NovoCarro() {
           ← Voltar
         </button>
 
+        {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
             src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => {
               if (imagens.length === 0) {
-                document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+                document.querySelector<HTMLInputElement>(
+                  'input[type="file"]'
+                )?.click();
               } else {
                 setFullscreen(true);
               }
             }}
             style={styles.mainImage}
           />
-          {imagens.length > 0 && (
-  <button
-    onClick={() =>
-      setImagemAtual((prev) =>
-        prev - 1 < 0 ? imagens.length - 1 : prev - 1
-      )
-    }
-    style={{
-      position: "absolute",
-      left: 10,
-      top: "50%",
-      transform: "translateY(-50%)",
-      background: "rgba(0,0,0,0.6)",
-      color: "white",
-      border: "none",
-      borderRadius: "50%",
-      width: 45,
-      height: 45,
-      fontSize: 20,
-      cursor: "pointer",
-    }}
-  >
-    ‹
-  </button>
-)}
-{imagens.length > 0 && (
-  <button
-    onClick={() =>
-      setImagemAtual((prev) =>
-        prev + 1 >= imagens.length ? 0 : prev + 1
-      )
-    }
-    style={{
-      position: "absolute",
-      right: 10,
-      top: "50%",
-      transform: "translateY(-50%)",
-      background: "rgba(0,0,0,0.6)",
-      color: "white",
-      border: "none",
-      borderRadius: "50%",
-      width: 45,
-      height: 45,
-      fontSize: 20,
-      cursor: "pointer",
-    }}
-  >
-    ›
-  </button>
-)}
 
           {imagens.length === 0 && (
             <div
@@ -242,7 +200,9 @@ export default function NovoCarro() {
                 cursor: "pointer",
               }}
               onClick={() =>
-                document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+                document
+                  .querySelector<HTMLInputElement>('input[type="file"]')
+                  ?.click()
               }
             >
               📸 Inserir fotos
@@ -250,7 +210,8 @@ export default function NovoCarro() {
           )}
         </div>
 
-        <div ref={scrollRef} style={styles.thumbs}>
+        {/* MINIATURAS */}
+        <div style={styles.thumbs}>
           {imagens.map((img, i) => (
             <div key={i} style={{ position: "relative" }}>
               <img
@@ -265,27 +226,84 @@ export default function NovoCarro() {
                 }}
               />
 
-              <button onClick={() => excluirImagem(i)} style={styles.deleteBtn}>
+              <button
+                onClick={() => excluirImagem(i)}
+                style={styles.deleteBtn}
+              >
                 ✕
               </button>
             </div>
           ))}
         </div>
 
+        {/* UPLOAD */}
         <label style={styles.upload}>
           📸 Inserir fotos
-          <input type="file" multiple hidden onChange={adicionarImagem} />
+          <input
+            type="file"
+            multiple
+            hidden
+            onChange={adicionarImagem}
+          />
         </label>
 
+        {/* FORM */}
         <div style={styles.form}>
-          <input placeholder="Nome do veículo" value={nome} onChange={(e) => setNome(e.target.value)} style={styles.input} />
-          <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} style={styles.input} />
-          <input placeholder="KM" value={km} onChange={(e) => setKm(e.target.value)} style={styles.input} />
-          <input placeholder="Câmbio" value={cambio} onChange={(e) => setCambio(e.target.value)} style={styles.input} />
-          <input placeholder="Combustível" value={combustivel} onChange={(e) => setCombustivel(e.target.value)} style={styles.input} />
-          <input placeholder="Preço" value={preco} onChange={(e) => setPreco(e.target.value)} style={styles.input} />
-          <textarea placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} style={styles.textarea} />
-          <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
+          <input
+            placeholder="Nome do veículo"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Ano"
+            value={ano}
+            onChange={(e) => setAno(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="KM"
+            value={km}
+            onChange={(e) => setKm(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Câmbio"
+            value={cambio}
+            onChange={(e) => setCambio(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Combustível"
+            value={combustivel}
+            onChange={(e) => setCombustivel(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Preço"
+            value={preco}
+            onChange={(e) => setPreco(e.target.value)}
+            style={styles.input}
+          />
+
+          <textarea
+            placeholder="Descrição"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            style={styles.textarea}
+          />
+
+          <input
+            placeholder="Vídeo YouTube"
+            value={video}
+            onChange={(e) => setVideo(e.target.value)}
+            style={styles.input}
+          />
 
           <button onClick={salvarCarro} style={styles.save}>
             Salvar veículo
@@ -293,24 +311,9 @@ export default function NovoCarro() {
         </div>
       </div>
 
-      {/* ✅ LOADER */}
-      {loading && (
-        <div style={styles.loaderOverlay}>
-          <div style={styles.spinner}></div>
-        </div>
-      )}
-
-      {/* ✅ AQUI ESTAVA FALTANDO */}
-      <style jsx global>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-
       {fullscreen && (
         <div onClick={() => setFullscreen(false)} style={styles.fullscreen}>
-         <img src={imagens[imagemAtual] || "/logo.png"} style={styles.fullImg} />
+          <img src={imagens[imagemAtual]} style={styles.fullImg} />
         </div>
       )}
     </main>
@@ -318,10 +321,18 @@ export default function NovoCarro() {
 }
 
 /* STYLES */
-
 const styles: any = {
-  main: { background: "#0f172a", minHeight: "100vh", padding: 20 },
-  container: { maxWidth: 900, margin: "0 auto", color: "white" },
+  main: {
+    background: "#0f172a",
+    minHeight: "100vh",
+    padding: 20,
+  },
+
+  container: {
+    maxWidth: 900,
+    margin: "0 auto",
+    color: "white",
+  },
 
   back: {
     marginBottom: 20,
@@ -426,26 +437,4 @@ const styles: any = {
     maxWidth: "95%",
     maxHeight: "95%",
   },
-
-  loaderOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.7)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999,
-  },
-
-  spinner: {
-  width: 80,
-  height: 80,
-  borderRadius: "50%",
-  border: "6px solid transparent",
-  borderTop: "6px solid #3b82f6",
-  borderRight: "3px solid rgba(59,130,246,0.6)",
-  borderBottom: "1px solid rgba(59,130,246,0.2)",
-  animation: "spin 0.7s linear infinite",
-  boxShadow: "0 0 20px #3b82f6, 0 0 40px #3b82f6",
-},
 };

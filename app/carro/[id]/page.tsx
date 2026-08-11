@@ -1,173 +1,63 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useRef, CSSProperties } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../data/useCarros";
 import { formatarPreco } from "@/data/formatarPreco";
 
 export default function DetalheCarro() {
-  const { carros, loading } = useCarros();
+  const { carros } = useCarros();
   const params = useParams();
   const router = useRouter();
 
   const id = Number(params.id);
   const carro = carros.find((c) => c.id === id);
-  
-  function gerarTitulo(carro: any) {
-  if (!carro) return "Carro";
-  return `${carro.nome} ${carro.ano} à venda em São Paulo`;
-}
 
-function gerarSlug(carro: any) {
-  if (!carro) return "";
-
-  return `${carro.nome}-${carro.ano}`
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]+/g, "");
-}
-
-  const imagens = (() => {
-    if (!carro?.imagens) return [];
-    if (Array.isArray(carro.imagens)) return carro.imagens;
-
-    try {
-      const parsed = JSON.parse(carro.imagens);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  })();
+  // ✅ IMAGENS (CORRETO E LIMPO)
+  const imagens = Array.isArray(carro?.imagens)
+    ? carro.imagens
+    : [];
 
   const [imagemAtual, setImagemAtual] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
 
-  // SIMULAÇÃO
   const [entrada, setEntrada] = useState("");
   const [parcelas, setParcelas] = useState(36);
   const [cpf, setCpf] = useState("");
   const [nascimento, setNascimento] = useState("");
-  const [temCnh, setTemCnh] = useState<boolean | null>(null);
+  const [temCnh, setTemCnh] = useState(false);
+  const [temTroca, setTemTroca] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-   // SEO
   useEffect(() => {
-  if (carro) {
-    document.title = `${carro.nome} ${carro.ano} à venda em São Paulo`;
+    if (!scrollRef.current) return;
 
-    let metaDescription = document.querySelector("meta[name='description']");
-    
-    if (!metaDescription) {
-      metaDescription = document.createElement("meta");
-      metaDescription.setAttribute("name", "description");
-      document.head.appendChild(metaDescription);
-    }
+    const itemWidth = 90;
 
-    metaDescription.setAttribute(
-      "content",
-      `${carro.nome} ${carro.ano} com ótimo preço. Confira fotos, detalhes e fale direto no WhatsApp.`
-    );
-  }
-}, [carro]);
+    scrollRef.current.scrollTo({
+      left: imagemAtual * itemWidth,
+      behavior: "smooth",
+    });
+  }, [imagemAtual]);
 
-   useEffect(() => {
-  if (!scrollRef.current) return;
-
-  scrollRef.current.scrollTo({
-    left: imagemAtual * 90,
-    behavior: "smooth",
-  });
-}, [imagemAtual]);
-
-  // LOADING
-  if (loading || !carro) {
-   
-    return (
-      <>
-        <div className="loader-container">
-          <div className="orbit">
-            <div className="dot"></div>
-            <div className="dot"></div>
-          </div>
-        </div>
-
-        <style jsx>{`
-          .loader-container {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f172a;
-          }
-
-          .orbit {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            animation: spin 2s linear infinite;
-          }
-
-          .dot {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: #0ea5e9;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
-          }
-
-          .dot:first-child {
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          }
-
-          .dot:last-child {
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-          }
-
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </>
-    );
+  if (!carro) {
+    return <p style={{ color: "white" }}>Carro não encontrado</p>;
   }
 
   const linkWhatsapp = `https://wa.me/5511981223969?text=Olá, tenho interesse no ${carro.nome} ${carro.ano}`;
 
-  function getEmbedUrl(url: string) {
+  const getEmbedUrl = (url: string) => {
     if (!url) return "";
-
-    if (url.includes("watch?v=")) {
-      return url.replace("watch?v=", "embed/");
-    }
-
-    if (url.includes("youtu.be/")) {
-      const id = url.split("youtu.be/")[1];
-      return `https://www.youtube.com/embed/${id}`;
-    }
-
-    if (url.includes("shorts/")) {
-      const id = url.split("shorts/")[1];
-      return `https://www.youtube.com/embed/${id}`;
-    }
-
-    return url;
-  }
+    return url.replace("watch?v=", "embed/");
+  };
 
   return (
     <main style={mainStyle}>
       <div style={container}>
+
+        {/* VOLTAR */}
         <button onClick={() => router.push("/")} style={backBtn}>
           ← Voltar
         </button>
@@ -175,31 +65,10 @@ function gerarSlug(carro: any) {
         {/* IMAGEM PRINCIPAL */}
         <div style={{ position: "relative" }}>
           <img
-  src={imagens[imagemAtual] || "/logo.png"}
-  onClick={() => setFullscreen((prev) => !prev)}
-  onContextMenu={(e) => e.preventDefault()}
-  onDragStart={(e) => e.preventDefault()}
-  style={mainImage}
-/>
-{/* WATERMARK */}
-<div
-  style={{
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    display: "flex",
-    justifyContent: "center",
-    pointerEvents: "none",
-    opacity: 0.35,
-    fontSize: 14,
-    color: "white",
-    fontWeight: "bold",
-    textShadow: "0 2px 5px rgba(0,0,0,0.8)",
-  }}
->
-  DOMINIOSEMINOVOS.COM.BR
-</div>
+            src={imagens[imagemAtual] || "/logo.png"}
+            onClick={() => setFullscreen(true)}
+            style={mainImage}
+          />
 
           <button
             onClick={() =>
@@ -215,7 +84,11 @@ function gerarSlug(carro: any) {
           <button
             onClick={() =>
               setImagemAtual((prev) =>
-                prev + 1 >= imagens.length ? 0 : prev + 1
+                !imagens.length
+                  ? 0
+                  : prev + 1 >= imagens.length
+                  ? 0
+                  : prev + 1
               )
             }
             style={arrowRight}
@@ -224,10 +97,10 @@ function gerarSlug(carro: any) {
           </button>
         </div>
 
-        {/* THUMBS */}
+        {/* MINIATURAS */}
         <div style={thumbWrapper}>
           <div ref={scrollRef} style={thumbScroll}>
-            {imagens.map((img: string, index: number) => (
+            {imagens.map((img, index) => (
               <img
                 key={index}
                 src={img}
@@ -287,6 +160,15 @@ function gerarSlug(carro: any) {
               style={input}
             />
 
+            <label>
+              <input
+                type="checkbox"
+                checked={temTroca}
+                onChange={() => setTemTroca(!temTroca)}
+              />{" "}
+              Troca
+            </label>
+
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[12, 24, 36, 48, 60].map((p) => (
                 <button
@@ -313,33 +195,20 @@ function gerarSlug(carro: any) {
             />
 
             <input
-              placeholder="DD/MM/AAAA"
+              type="date"
               value={nascimento}
               onChange={(e) => setNascimento(e.target.value)}
               style={input}
             />
 
-            <div>
-              <p>Tem CNH?</p>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={temCnh === true}
-                  onChange={() => setTemCnh(true)}
-                />{" "}
-                Sim
-              </label>
-
-              <label style={{ marginLeft: 10 }}>
-                <input
-                  type="checkbox"
-                  checked={temCnh === false}
-                  onChange={() => setTemCnh(false)}
-                />{" "}
-                Não
-              </label>
-            </div>
+            <label>
+              <input
+                type="checkbox"
+                checked={temCnh}
+                onChange={() => setTemCnh(!temCnh)}
+              />{" "}
+              CNH
+            </label>
 
             <a
               href={`https://wa.me/5511981223969?text=${encodeURIComponent(
@@ -350,9 +219,8 @@ Entrada: ${entrada}
 Parcelas: ${parcelas}x
 CPF: ${cpf}
 Nascimento: ${nascimento}
-CNH: ${
-                  temCnh === null ? "Não informado" : temCnh ? "Sim" : "Não"
-                }`
+CNH: ${temCnh ? "Sim" : "Não"}
+Troca: ${temTroca ? "Sim" : "Não"}`
               )}`}
               target="_blank"
               style={whatsBtn}
@@ -361,48 +229,6 @@ CNH: ${
             </a>
           </div>
         </div>
-
-        {/* FULLSCREEN IMAGEM (CORREÇÃO QUE ESTAVA FALTANDO) */}
-        {fullscreen && (
-  <div onClick={() => setFullscreen(false)} style={overlay}>
-    
-    <div style={{ position: "relative", maxWidth: "95%", maxHeight: "95%" }}>
-      
-      <img
-  src={imagens[imagemAtual] || "/logo.png"}
-  onClick={() => setFullscreen(false)}
-  onContextMenu={(e) => e.preventDefault()}   // ❌ bloqueia botão direito
-  onDragStart={(e) => e.preventDefault()}      // ❌ bloqueia arrastar
-  style={{
-    width: "100%",
-    height: "auto",
-    borderRadius: 10,
-    userSelect: "none",
-    
-  }}
-   />
-      {/* 🔥 MARCA D'ÁGUA */}
-      <div
-  style={{
-    position: "absolute",
-    bottom: 60,
-    left: 0,
-    width: "100%",
-    textAlign: "center",
-    fontSize: "clamp(12px, 2.5vw, 18px)",
-    fontWeight: "bold",
-    color: "rgba(255,255,255,0.35)",
-    pointerEvents: "none",
-    letterSpacing: 1,
-  }}
->
-  DOMINIOSEMINOVOS.COM.BR
-</div>
-
-    </div>
-
-  </div>
-)}
 
         {/* VIDEO MODAL */}
         {videoOpen && (
@@ -415,11 +241,21 @@ CNH: ${
               <iframe
                 src={getEmbedUrl(carro.video)}
                 width="100%"
-                height="400"
+                height="250"
                 style={{ borderRadius: 10 }}
                 allowFullScreen
               />
             </div>
+          </div>
+        )}
+
+        {/* FULLSCREEN */}
+        {fullscreen && (
+          <div onClick={() => setFullscreen(false)} style={overlay}>
+            <img
+              src={imagens[imagemAtual] || "/logo.png"}
+              style={{ maxWidth: "95%", maxHeight: "95%" }}
+            />
           </div>
         )}
       </div>
@@ -427,9 +263,9 @@ CNH: ${
   );
 }
 
-/* STYLES */
+/* ================= STYLES ================= */
 
-const mainStyle: CSSProperties = {
+const mainStyle = {
   backgroundColor: "#0f172a",
   minHeight: "100vh",
   display: "flex",
@@ -437,13 +273,13 @@ const mainStyle: CSSProperties = {
   padding: 20,
 };
 
-const container: CSSProperties = {
+const container = {
   width: "100%",
   maxWidth: 800,
   color: "white",
 };
 
-const backBtn: CSSProperties = {
+const backBtn = {
   marginBottom: 20,
   padding: "8px 12px",
   background: "#374151",
@@ -452,28 +288,28 @@ const backBtn: CSSProperties = {
   color: "white",
 };
 
-const mainImage: CSSProperties = {
+const mainImage = {
   width: "100%",
-  height: "35vh",
+  height: "40vh",
   objectFit: "cover",
   borderRadius: 10,
 };
 
-const thumbWrapper: CSSProperties = {
+const thumbWrapper = {
   display: "flex",
   alignItems: "center",
   gap: 10,
   marginTop: 10,
 };
 
-const thumbScroll: CSSProperties = {
+const thumbScroll = {
   display: "flex",
   gap: 10,
   overflowX: "auto",
   flex: 1,
 };
 
-const videoBtn: CSSProperties = {
+const videoBtn = {
   minWidth: 130,
   height: 75,
   background: "#000",
@@ -482,9 +318,10 @@ const videoBtn: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  flexShrink: 0,
 };
 
-const playOuter: CSSProperties = {
+const playOuter = {
   width: 30,
   height: 20,
   background: "red",
@@ -492,7 +329,7 @@ const playOuter: CSSProperties = {
   position: "relative",
 };
 
-const playIcon: CSSProperties = {
+const playIcon = {
   width: 0,
   height: 0,
   borderTop: "6px solid transparent",
@@ -504,14 +341,14 @@ const playIcon: CSSProperties = {
   transform: "translate(-40%, -50%)",
 };
 
-const infoBox: CSSProperties = {
+const infoBox = {
   background: "#111827",
   padding: 20,
   borderRadius: 10,
   marginTop: 20,
 };
 
-const input: CSSProperties = {
+const input = {
   padding: 10,
   borderRadius: 6,
   border: "1px solid #374151",
@@ -519,7 +356,7 @@ const input: CSSProperties = {
   color: "white",
 };
 
-const whatsBtn: CSSProperties = {
+const whatsBtn = {
   display: "block",
   marginTop: 10,
   padding: 12,
@@ -531,7 +368,7 @@ const whatsBtn: CSSProperties = {
   fontWeight: "bold",
 };
 
-const arrowLeft: CSSProperties = {
+const arrowLeft = {
   position: "absolute",
   left: 5,
   top: "50%",
@@ -544,13 +381,13 @@ const arrowLeft: CSSProperties = {
   height: 40,
 };
 
-const arrowRight: CSSProperties = {
+const arrowRight = {
   ...arrowLeft,
   left: "auto",
   right: 5,
 };
 
-const overlay: CSSProperties = {
+const overlay = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,0.9)",
@@ -560,7 +397,7 @@ const overlay: CSSProperties = {
   zIndex: 999,
 };
 
-const modal: CSSProperties = {
+const modal = {
   width: "90%",
   maxWidth: 400,
   background: "#000",
@@ -568,7 +405,7 @@ const modal: CSSProperties = {
   borderRadius: 10,
 };
 
-const closeBtn: CSSProperties = {
+const closeBtn = {
   background: "red",
   border: "none",
   borderRadius: "50%",
