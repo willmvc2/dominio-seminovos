@@ -205,6 +205,9 @@ export default function EditarCarro() {
     // NOVO: LIGA AS BOLINHAS
     setCarregandoImagem(true);
 
+    // dá tempo para a animação aparecer antes da compactação
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     const novasUrls: string[] = [];
 
     for (const file of Array.from(files)) {

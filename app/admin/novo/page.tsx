@@ -96,6 +96,9 @@ export default function NovoCarro() {
 
     setCarregandoImagem(true);
 
+    // dá tempo para a animação aparecer antes da compactação
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     const urls: string[] = [];
 
     for (const file of Array.from(files)) {
