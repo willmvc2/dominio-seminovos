@@ -3,9 +3,10 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useCarros } from "../../../../data/useCarros";
+import { supabase } from "@/app/lib/supabase";
 
 export default function EditarCarro() {
-  const { carros, salvar } = useCarros();
+  const { carros, atualizarCarro } = useCarros();
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
@@ -30,15 +31,106 @@ export default function EditarCarro() {
     setForm((prev: any) => ({ ...prev, [campo]: valor }));
   }
 
-  function uploadImagem(e: any) {
-    const file = e.target.files[0];
-    if (!file) return;
+  // COMPACTAR IMAGEM
+  async function compactarImagem(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const urlTemporaria = URL.createObjectURL(file);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      atualizar("imagens", [...form.imagens, reader.result]);
-    };
-    reader.readAsDataURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(urlTemporaria);
+
+        const MAX_SIZE = 1400;
+
+        let largura = img.width;
+        let altura = img.height;
+
+        if (largura > MAX_SIZE || altura > MAX_SIZE) {
+          if (largura > altura) {
+            altura = Math.round((altura * MAX_SIZE) / largura);
+            largura = MAX_SIZE;
+          } else {
+            largura = Math.round((largura * MAX_SIZE) / altura);
+            altura = MAX_SIZE;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Não foi possível processar a imagem"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, largura, altura);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Erro ao compactar imagem"));
+              return;
+            }
+
+            resolve(blob);
+          },
+          "image/webp",
+          0.78
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(urlTemporaria);
+        reject(new Error("Erro ao carregar imagem"));
+      };
+
+      img.src = urlTemporaria;
+    });
+  }
+
+  // UPLOAD COMPACTADO PARA SUPABASE
+  async function uploadImagem(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const novasUrls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      try {
+        const imagemCompactada = await compactarImagem(file);
+
+        const nomeArquivo = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.webp`;
+
+        const { error } = await supabase.storage
+          .from("carros")
+          .upload(nomeArquivo, imagemCompactada, {
+            contentType: "image/webp",
+          });
+
+        if (error) {
+          console.log(error);
+          alert("Erro ao enviar imagem");
+          return;
+        }
+
+        const url = `https://totdnqrhmgsjqvswujho.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
+
+        novasUrls.push(url);
+      } catch (error) {
+        console.log(error);
+        alert("Erro ao processar imagem");
+        return;
+      }
+    }
+
+    atualizar("imagens", [...form.imagens, ...novasUrls]);
+
+    e.target.value = "";
   }
 
   function excluirImagem(index: number) {
@@ -47,14 +139,13 @@ export default function EditarCarro() {
     setImagemAtual(0);
   }
 
-  function salvarAlteracao() {
-    const novaLista = carros.map((c) =>
-      c.id === id ? form : c
-    );
+  async function salvarAlteracao() {
+    const sucesso = await atualizarCarro(id, form);
 
-    salvar(novaLista);
-    alert("Salvo com sucesso!");
-    router.push("/admin");
+    if (sucesso) {
+      alert("Salvo com sucesso!");
+      router.push("/admin");
+    }
   }
 
   if (!form) return <p style={{ color: "white" }}>Carregando...</p>;
@@ -155,46 +246,59 @@ export default function EditarCarro() {
         </div>
 
         {/* MINIATURAS */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-          {(Array.isArray(form.imagens) ? form.imagens : []).map((img: string, index: number) => (
-            <div key={index} style={{ position: "relative" }}>
-              <img
-                src={img}
-                onClick={() => setImagemAtual(index)}
-                style={{
-                  width: 80,
-                  height: 60,
-                  objectFit: "cover",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  border: imagemAtual === index ? "2px solid #3b82f6" : "none",
-                }}
-              />
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            marginBottom: 20,
+          }}
+        >
+          {(Array.isArray(form.imagens) ? form.imagens : []).map(
+            (img: string, index: number) => (
+              <div key={index} style={{ position: "relative" }}>
+                <img
+                  src={img}
+                  onClick={() => setImagemAtual(index)}
+                  style={{
+                    width: 80,
+                    height: 60,
+                    objectFit: "cover",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    border:
+                      imagemAtual === index
+                        ? "2px solid #3b82f6"
+                        : "none",
+                  }}
+                />
 
-              <button
-                onClick={() => excluirImagem(index)}
-                style={{
-                  position: "absolute",
-                  top: -5,
-                  right: -5,
-                  background: "red",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 20,
-                  height: 20,
-                  cursor: "pointer",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+                <button
+                  onClick={() => excluirImagem(index)}
+                  style={{
+                    position: "absolute",
+                    top: -5,
+                    right: -5,
+                    background: "red",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 20,
+                    height: 20,
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )
+          )}
         </div>
 
         {/* UPLOAD */}
         <input
           type="file"
+          multiple
           ref={fileInputRef}
           onChange={uploadImagem}
           style={{ display: "none" }}
@@ -230,9 +334,12 @@ export default function EditarCarro() {
               <label style={{ fontSize: 14, color: "#9ca3af" }}>
                 {item.label}
               </label>
+
               <input
                 value={form[item.campo] || ""}
-                onChange={(e) => atualizar(item.campo, e.target.value)}
+                onChange={(e) =>
+                  atualizar(item.campo, e.target.value)
+                }
                 style={{
                   width: "100%",
                   padding: 10,
@@ -246,10 +353,20 @@ export default function EditarCarro() {
           ))}
 
           <div>
-            <label style={{ fontSize: 14, color: "#9ca3af" }}>Descrição</label>
+            <label
+              style={{
+                fontSize: 14,
+                color: "#9ca3af",
+              }}
+            >
+              Descrição
+            </label>
+
             <textarea
               value={form.descricao || ""}
-              onChange={(e) => atualizar("descricao", e.target.value)}
+              onChange={(e) =>
+                atualizar("descricao", e.target.value)
+              }
               style={{
                 width: "100%",
                 padding: 10,
@@ -263,12 +380,20 @@ export default function EditarCarro() {
           </div>
 
           <div>
-            <label style={{ fontSize: 14, color: "#9ca3af" }}>
+            <label
+              style={{
+                fontSize: 14,
+                color: "#9ca3af",
+              }}
+            >
               Vídeo (YouTube)
             </label>
+
             <input
               value={form.video || ""}
-              onChange={(e) => atualizar("video", e.target.value)}
+              onChange={(e) =>
+                atualizar("video", e.target.value)
+              }
               placeholder="Cole o link do YouTube"
               style={{
                 width: "100%",
@@ -282,10 +407,20 @@ export default function EditarCarro() {
           </div>
 
           <div>
-            <label style={{ fontSize: 14, color: "#9ca3af" }}>Status</label>
+            <label
+              style={{
+                fontSize: 14,
+                color: "#9ca3af",
+              }}
+            >
+              Status
+            </label>
+
             <select
               value={form.status || "disponivel"}
-              onChange={(e) => atualizar("status", e.target.value)}
+              onChange={(e) =>
+                atualizar("status", e.target.value)
+              }
               style={{
                 width: "100%",
                 padding: 10,

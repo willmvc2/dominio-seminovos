@@ -23,6 +23,67 @@ export default function NovoCarro() {
 
   const [imagens, setImagens] = useState<string[]>([]);
 
+  // COMPACTAR IMAGEM ANTES DE ENVIAR AO SUPABASE
+  async function compactarImagem(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const urlTemporaria = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(urlTemporaria);
+
+        const MAX_SIZE = 1400;
+
+        let largura = img.width;
+        let altura = img.height;
+
+        // Redimensiona mantendo a proporção
+        if (largura > MAX_SIZE || altura > MAX_SIZE) {
+          if (largura > altura) {
+            altura = Math.round((altura * MAX_SIZE) / largura);
+            largura = MAX_SIZE;
+          } else {
+            largura = Math.round((largura * MAX_SIZE) / altura);
+            altura = MAX_SIZE;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Não foi possível processar a imagem"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, largura, altura);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Erro ao compactar imagem"));
+              return;
+            }
+
+            resolve(blob);
+          },
+          "image/webp",
+          0.72
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(urlTemporaria);
+        reject(new Error("Erro ao carregar imagem"));
+      };
+
+      img.src = urlTemporaria;
+    });
+  }
+
   // UPLOAD SUPABASE STORAGE
   async function adicionarImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -31,21 +92,35 @@ export default function NovoCarro() {
     const urls: string[] = [];
 
     for (const file of Array.from(files)) {
-      const nomeArquivo = `${Date.now()}-${file.name}`;
+      try {
+        // COMPACTA A FOTO
+        const imagemCompactada = await compactarImagem(file);
 
-      const { error } = await supabase.storage
-        .from("carros")
-        .upload(nomeArquivo, file);
+        // Salva sempre como WebP
+        const nomeArquivo = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.webp`;
 
-      if (error) {
+        const { error } = await supabase.storage
+          .from("carros")
+          .upload(nomeArquivo, imagemCompactada, {
+            contentType: "image/webp",
+          });
+
+        if (error) {
+          console.log(error);
+          alert("Erro ao enviar imagem");
+          return;
+        }
+
+        const url = `https://totdnqrhmgsjqvswujho.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
+
+        urls.push(url);
+      } catch (error) {
         console.log(error);
-        alert("Erro ao enviar imagem");
+        alert("Erro ao processar imagem");
         return;
       }
-
-      const url = `https://fkzpdcekozcncsnwyblp.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
-
-      urls.push(url);
     }
 
     setImagens((prev) => [...prev, ...urls]);
@@ -99,7 +174,9 @@ export default function NovoCarro() {
             src={imagens[imagemAtual] || "/logo.png"}
             onClick={() => {
               if (imagens.length === 0) {
-                document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+                document.querySelector<HTMLInputElement>(
+                  'input[type="file"]'
+                )?.click();
               } else {
                 setFullscreen(true);
               }
@@ -123,7 +200,9 @@ export default function NovoCarro() {
                 cursor: "pointer",
               }}
               onClick={() =>
-                document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+                document
+                  .querySelector<HTMLInputElement>('input[type="file"]')
+                  ?.click()
               }
             >
               📸 Inserir fotos
@@ -160,21 +239,71 @@ export default function NovoCarro() {
         {/* UPLOAD */}
         <label style={styles.upload}>
           📸 Inserir fotos
-          <input type="file" multiple hidden onChange={adicionarImagem} />
+          <input
+            type="file"
+            multiple
+            hidden
+            onChange={adicionarImagem}
+          />
         </label>
 
         {/* FORM */}
         <div style={styles.form}>
-          <input placeholder="Nome do veículo" value={nome} onChange={(e) => setNome(e.target.value)} style={styles.input} />
-          <input placeholder="Ano" value={ano} onChange={(e) => setAno(e.target.value)} style={styles.input} />
-          <input placeholder="KM" value={km} onChange={(e) => setKm(e.target.value)} style={styles.input} />
-          <input placeholder="Câmbio" value={cambio} onChange={(e) => setCambio(e.target.value)} style={styles.input} />
-          <input placeholder="Combustível" value={combustivel} onChange={(e) => setCombustivel(e.target.value)} style={styles.input} />
-          <input placeholder="Preço" value={preco} onChange={(e) => setPreco(e.target.value)} style={styles.input} />
+          <input
+            placeholder="Nome do veículo"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            style={styles.input}
+          />
 
-          <textarea placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} style={styles.textarea} />
+          <input
+            placeholder="Ano"
+            value={ano}
+            onChange={(e) => setAno(e.target.value)}
+            style={styles.input}
+          />
 
-          <input placeholder="Vídeo YouTube" value={video} onChange={(e) => setVideo(e.target.value)} style={styles.input} />
+          <input
+            placeholder="KM"
+            value={km}
+            onChange={(e) => setKm(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Câmbio"
+            value={cambio}
+            onChange={(e) => setCambio(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Combustível"
+            value={combustivel}
+            onChange={(e) => setCombustivel(e.target.value)}
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Preço"
+            value={preco}
+            onChange={(e) => setPreco(e.target.value)}
+            style={styles.input}
+          />
+
+          <textarea
+            placeholder="Descrição"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            style={styles.textarea}
+          />
+
+          <input
+            placeholder="Vídeo YouTube"
+            value={video}
+            onChange={(e) => setVideo(e.target.value)}
+            style={styles.input}
+          />
 
           <button onClick={salvarCarro} style={styles.save}>
             Salvar veículo
@@ -193,8 +322,17 @@ export default function NovoCarro() {
 
 /* STYLES */
 const styles: any = {
-  main: { background: "#0f172a", minHeight: "100vh", padding: 20 },
-  container: { maxWidth: 900, margin: "0 auto", color: "white" },
+  main: {
+    background: "#0f172a",
+    minHeight: "100vh",
+    padding: 20,
+  },
+
+  container: {
+    maxWidth: 900,
+    margin: "0 auto",
+    color: "white",
+  },
 
   back: {
     marginBottom: 20,

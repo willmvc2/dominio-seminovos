@@ -18,20 +18,20 @@ export function useCarros() {
     }
 
     setCarros(
-  (data || []).map((car) => {
-    let imagens: string[] = [];
+      (data || []).map((car) => {
+        let imagens: string[] = [];
 
-    if (Array.isArray(car.imagens)) {
-      imagens = car.imagens;
-    } else {
-      try {
-        imagens = JSON.parse(car.imagens || "[]");
-      } catch {
-        imagens = [];
-      }
-    }
+        if (Array.isArray(car.imagens)) {
+          imagens = car.imagens;
+        } else {
+          try {
+            imagens = JSON.parse(car.imagens || "[]");
+          } catch {
+            imagens = [];
+          }
+        }
 
-    return {
+        return {
           ...car,
           imagens,
         };
@@ -44,25 +44,66 @@ export function useCarros() {
   }, []);
 
   async function salvar(novo: any) {
-  const payload = {
-    ...novo,
-    imagens: Array.isArray(novo.imagens) ? novo.imagens : [],
-  };
+    const payload = {
+      ...novo,
+      imagens: Array.isArray(novo.imagens) ? novo.imagens : [],
+    };
 
-  const { data, error } = await supabase
-    .from("carros")
-    .insert([payload])
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from("carros")
+      .insert([payload])
+      .select()
+      .single();
 
-  if (error) {
-    console.error("❌ ERRO SUPABASE:", error);
-    alert("Erro ao salvar: " + error.message);
-    return;
+    if (error) {
+      console.error("❌ ERRO SUPABASE:", error);
+      alert("Erro ao salvar: " + error.message);
+      return false;
+    }
+
+    setCarros((prev) => [data, ...prev]);
+
+    return true;
   }
 
-  setCarros((prev) => [data, ...prev]);
-}
+  async function atualizarCarro(id: number, dados: any) {
+    const payload = {
+      ...dados,
+      imagens: Array.isArray(dados.imagens) ? dados.imagens : [],
+    };
+
+    // Não precisamos alterar o ID
+    delete payload.id;
+    delete payload.created_at;
+
+    const { data, error } = await supabase
+      .from("carros")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ ERRO AO ATUALIZAR:", error);
+      alert("Erro ao salvar alterações: " + error.message);
+      return false;
+    }
+
+    setCarros((prev) =>
+      prev.map((carro) =>
+        carro.id === id
+          ? {
+            ...data,
+            imagens: Array.isArray(data.imagens)
+              ? data.imagens
+              : [],
+          }
+          : carro
+      )
+    );
+
+    return true;
+  }
 
   async function excluir(id: number) {
     const { error } = await supabase
@@ -78,5 +119,10 @@ export function useCarros() {
     setCarros((prev) => prev.filter((c) => c.id !== id));
   }
 
-  return { carros, salvar, excluir };
+  return {
+    carros,
+    salvar,
+    atualizarCarro,
+    excluir,
+  };
 }
