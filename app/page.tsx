@@ -3,12 +3,15 @@
 import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
 import { useCarros } from "../data/useCarros";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
+import { supabase } from "@/app/lib/supabase";
 
 export default function Home() {
   const router = useRouter();
   const { carros } = useCarros();
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const carrosPorPagina = 9;
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
@@ -45,6 +48,39 @@ export default function Home() {
     if (pA !== pB) return pA - pB;
     return b.id - a.id;
   });
+
+  const totalPaginas = Math.ceil(
+    carrosOrdenados.length / carrosPorPagina
+  );
+
+  const inicio = (paginaAtual - 1) * carrosPorPagina;
+
+  const carrosDaPagina = carrosOrdenados.slice(
+    inicio,
+    inicio + carrosPorPagina
+  );
+
+  async function abrirCarro(car: any) {
+    if ((car.status || "disponivel") === "vendido") return;
+
+    const novosCliques = (car.cliques ?? 0) + 1;
+
+    const { error } = await supabase
+      .from("carros")
+      .update({ cliques: novosCliques })
+      .eq("id", car.id);
+
+    if (error) {
+      console.log("Erro ao contabilizar clique:", error);
+    }
+
+    sessionStorage.setItem(
+      "scrollY",
+      window.scrollY.toString()
+    );
+
+    router.push(`/carro/${car.id}`);
+  }
 
   if (!carros?.length) {
     return (
@@ -152,7 +188,7 @@ export default function Home() {
             gridTemplateColumns: "repeat(3, 1fr)",
           }}
         >
-          {carrosOrdenados.map((car) => {
+          {carrosDaPagina.map((car) => {
             const status = car.status || "disponivel";
             const isVendido = status === "vendido";
 
@@ -195,16 +231,8 @@ export default function Home() {
 
                 {/* CARD */}
                 <div
-                  onClick={() => {
-                    if (isVendido) return;
+                  onClick={() => abrirCarro(car)}
 
-                    sessionStorage.setItem(
-                      "scrollY",
-                      window.scrollY.toString()
-                    );
-
-                    router.push(`/carro/${car.id}`);
-                  }}
                   style={{
                     cursor: isVendido ? "not-allowed" : "pointer",
                     opacity: isVendido ? 0.6 : 1,
@@ -264,11 +292,9 @@ export default function Home() {
                       disabled={isVendido}
                       onClick={(e) => {
                         e.stopPropagation();
-
-                        if (isVendido) return;
-
-                        router.push(`/carro/${car.id}`);
+                        abrirCarro(car);
                       }}
+
                       style={{
                         marginTop: 10,
                         width: "100%",
@@ -292,6 +318,67 @@ export default function Home() {
             );
           })}
         </div>
+
+        {totalPaginas > 1 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 20,
+              margin: "20px 0 30px",
+            }}
+          >
+            <button
+              disabled={paginaAtual === 1}
+              onClick={() => {
+                setPaginaAtual((pagina) => pagina - 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: "1px solid #3b82f6",
+                background: "transparent",
+                color: paginaAtual === 1 ? "#64748b" : "#3b82f6",
+                cursor: paginaAtual === 1 ? "not-allowed" : "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              ← Anterior
+            </button>
+
+            <span
+              style={{
+                color: "white",
+                fontWeight: "bold",
+              }}
+            >
+              {paginaAtual} / {totalPaginas}
+            </span>
+
+            <button
+              disabled={paginaAtual === totalPaginas}
+              onClick={() => {
+                setPaginaAtual((pagina) => pagina + 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: "1px solid #3b82f6",
+                background: "transparent",
+                color:
+                  paginaAtual === totalPaginas ? "#64748b" : "#3b82f6",
+                cursor:
+                  paginaAtual === totalPaginas ? "not-allowed" : "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Próxima →
+            </button>
+          </div>
+        )}
 
         {/* RESPONSIVO */}
         <style jsx>{`

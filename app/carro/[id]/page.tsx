@@ -26,7 +26,7 @@ export default function DetalheCarro() {
   const [cpf, setCpf] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [temCnh, setTemCnh] = useState(false);
-  const [temTroca, setTemTroca] = useState(false);
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -423,6 +423,16 @@ export default function DetalheCarro() {
             WhatsApp
           </a>
 
+          <h2
+            style={{
+              marginTop: 20,
+              fontSize: 20,
+              fontWeight: "bold",
+            }}
+          >
+            Simulação
+          </h2>
+
           {/* SIMULAÇÃO */}
           <div
             style={{
@@ -440,16 +450,7 @@ export default function DetalheCarro() {
               style={input}
             />
 
-            <label>
-              <input
-                type="checkbox"
-                checked={temTroca}
-                onChange={() =>
-                  setTemTroca(!temTroca)
-                }
-              />{" "}
-              Troca
-            </label>
+
 
             <div
               style={{
@@ -492,11 +493,34 @@ export default function DetalheCarro() {
             />
 
             <input
-              type="date"
+              type="text"
+              placeholder="Data de nascimento"
               value={nascimento}
-              onChange={(e) =>
-                setNascimento(e.target.value)
-              }
+              maxLength={10}
+              inputMode="numeric"
+              onChange={(e) => {
+                let valor = e.target.value.replace(/\D/g, "");
+
+                if (valor.length > 8) {
+                  valor = valor.slice(0, 8);
+                }
+
+                if (valor.length > 4) {
+                  valor =
+                    valor.slice(0, 2) +
+                    "/" +
+                    valor.slice(2, 4) +
+                    "/" +
+                    valor.slice(4);
+                } else if (valor.length > 2) {
+                  valor =
+                    valor.slice(0, 2) +
+                    "/" +
+                    valor.slice(2);
+                }
+
+                setNascimento(valor);
+              }}
               style={input}
             />
 
@@ -508,7 +532,7 @@ export default function DetalheCarro() {
                   setTemCnh(!temCnh)
                 }
               />{" "}
-              CNH
+              Tem CNH
             </label>
 
             <a
@@ -520,8 +544,8 @@ Entrada: ${entrada}
 Parcelas: ${parcelas}x
 CPF: ${cpf}
 Nascimento: ${nascimento}
-CNH: ${temCnh ? "Sim" : "Não"}
-Troca: ${temTroca ? "Sim" : "Não"}`
+Tem CNH: ${temCnh ? "Sim" : "Não"}
+`
               )}`}
               target="_blank"
               style={whatsBtn}
