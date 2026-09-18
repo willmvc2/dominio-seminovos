@@ -3,7 +3,7 @@
 import Footer from "../components/Footer";
 import { useRouter } from "next/navigation";
 import { useCarros } from "../data/useCarros";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
 import { supabase } from "@/app/lib/supabase";
 
@@ -12,6 +12,36 @@ export default function Home() {
   const { carros } = useCarros();
   const [paginaAtual, setPaginaAtual] = useState(1);
   const carrosPorPagina = 9;
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [imagensVendidos, setImagensVendidos] = useState<any[]>([]);
+
+  // ==========================================
+  // CARROSSEL DE VEÍCULOS VENDIDOS
+  // ==========================================
+
+  // Busca as imagens cadastradas no Supabase
+  useEffect(() => {
+    async function carregarVendidos() {
+      const { data, error } = await supabase
+        .from("carrossel_vendidos")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+
+      if (error) {
+        console.log("Erro ao carregar carrossel:", error);
+        return;
+      }
+
+      console.log("CARROSSEL VENDIDOS:", data);
+
+      setImagensVendidos(data || []);
+    }
+
+    carregarVendidos();
+  }, []);
+
+
 
   // 🔥 atualiza quando salva no admin
   useEffect(() => {
@@ -162,22 +192,70 @@ export default function Home() {
           flex: 1,
         }}
       >
-        {/* TOPO */}
-        <div style={{ backgroundColor: "black", width: "100%" }}>
-          <div
-            style={{
-              maxWidth: 1100,
-              margin: "0 auto",
-              padding: "15px 10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          ></div>
+
+
+        {/* NEGÓCIOS FEITOS */}
+        {imagensVendidos.length > 0 && (
+          <section className="negocios-section">
+
+            <div className="negocios-cabecalho">
+              <div className="negocios-linha1">
+                Negócios feitos pela
+              </div>
+
+              <div className="negocios-linha2">
+                Domínio Seminovos
+              </div>
+
+              <div className="negocios-traco"></div>
+            </div>
+
+            <div className="negocios-janela">
+
+              <div className="negocios-pista">
+
+                {/* PRIMEIRA SEQUÊNCIA */}
+                {[...imagensVendidos, ...imagensVendidos, ...imagensVendidos, ...imagensVendidos].map(
+                  (item, index) => (
+                    <div
+                      className="negocio-foto"
+                      key={`${item.id}-${index}`}
+                    >
+                      <img
+                        src={item.imagem}
+                        alt="Negócio realizado pela Domínio Seminovos"
+                      />
+                    </div>
+                  )
+                )}
+
+                {/* REPETIÇÃO PARA O LOOP NÃO DAR PULO */}
+                {imagensVendidos.map((item) => (
+                  <div
+                    className="negocio-foto"
+                    key={`copia-${item.id}`}
+                  >
+                    <img
+                      src={item.imagem}
+                      alt=""
+                    />
+                  </div>
+                ))}
+
+              </div>
+
+            </div>
+
+          </section>
+        )}
+
+        <div className="titulo-estoque">
+          Nosso Estoque
         </div>
 
         {/* GRID */}
         <div
+          ref={gridRef}
           className="grid"
           style={{
             maxWidth: 1100,
@@ -332,8 +410,14 @@ export default function Home() {
             <button
               disabled={paginaAtual === 1}
               onClick={() => {
-                setPaginaAtual((pagina) => pagina - 1);
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                setPaginaAtual((pagina) => pagina + 1);
+
+                setTimeout(() => {
+                  gridRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }, 100);
               }}
               style={{
                 padding: "10px 16px",
@@ -361,7 +445,13 @@ export default function Home() {
               disabled={paginaAtual === totalPaginas}
               onClick={() => {
                 setPaginaAtual((pagina) => pagina + 1);
-                window.scrollTo({ top: 0, behavior: "smooth" });
+
+                setTimeout(() => {
+                  gridRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }, 100);
               }}
               style={{
                 padding: "10px 16px",
@@ -380,20 +470,234 @@ export default function Home() {
           </div>
         )}
 
-        {/* RESPONSIVO */}
+        {/* CARROSSEL E RESPONSIVO */}
         <style jsx>{`
-          @media (max-width: 900px) {
-            .grid {
-              grid-template-columns: repeat(2, 1fr) !important;
-            }
-          }
 
-          @media (max-width: 600px) {
-            .grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
+  /* ========================================
+   NEGÓCIOS FEITOS
+======================================== */
+
+.negocios-section {
+  width: 100%;
+  padding: 42px 0 32px;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 76, 180, 0.18) 0%,
+      rgba(15, 23, 42, 0) 65%
+    );
+}
+
+/* TÍTULO */
+
+.negocios-cabecalho {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.negocios-linha1 {
+  color: #b6bdca;
+  font-size: 25px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.negocios-linha2 {
+  color: #eaf2ff;
+  font-size: 34px;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 1.2;
+
+  text-shadow:
+    0 0 8px rgba(59, 130, 246, 0.8),
+    0 0 18px rgba(37, 99, 235, 0.5);
+}
+
+.negocios-traco {
+  width: 200px;
+  height: 2px;
+  margin: 10px auto 0;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #2563eb,
+    #60a5fa,
+    #2563eb,
+    transparent
+  );
+
+  box-shadow:
+    0 0 8px #2563eb;
+}
+
+/* JANELA DO CARROSSEL */
+
+.negocios-janela {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 6%,
+    black 94%,
+    transparent 100%
+  );
+}
+
+/* PISTA */
+
+.negocios-pista {
+  --gap: 22px;
+
+  display: flex;
+  align-items: center;
+  width: max-content;
+  gap: var(--gap);
+
+  animation: negociosMovimento 28s linear infinite;
+  will-change: transform;
+}
+
+/* QUADRADOS DAS FOTOS */
+
+.negocio-foto {
+  flex: 0 0 auto;
+
+  width: 270px;
+  height: 170px;
+
+  border-radius: 15px;
+  overflow: hidden;
+
+  border: 2px solid rgba(59, 130, 246, 0.9);
+
+  background: #111827;
+
+  box-shadow:
+    0 0 8px rgba(59, 130, 246, 0.8),
+    0 0 20px rgba(37, 99, 235, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.55);
+}
+
+.negocio-foto img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+  object-fit: cover;
+}
+
+/* ESQUERDA → DIREITA */
+
+@keyframes negociosMovimento {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - (var(--gap) / 2)));
+  }
+}
+
+
+/* NOSSO ESTOQUE */
+
+.titulo-estoque {
+  width: 100%;
+  max-width: 1100px;
+  margin: 20px auto 0;
+  padding: 0 10px;
+  color: white;
+  font-size: 30px;
+  font-weight: 900;
+  box-sizing: border-box;
+}
+
+
+/* TABLET */
+
+@media (max-width: 900px) {
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .negocio-foto {
+    width: 230px;
+    height: 145px;
+  }
+
+  .negocios-pista {
+    gap: 14px;
+  }
+}
+
+
+/* CELULAR */
+
+@media (max-width: 600px) {
+
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .negocios-section {
+    padding: 25px 0 20px;
+  }
+
+  .negocios-cabecalho {
+    margin-bottom: 22px;
+  }
+
+  .negocios-linha1 {
+    font-size: 17px;
+  }
+
+  .negocios-linha2 {
+    font-size: 24px;
+  }
+
+  .negocios-traco {
+    width: 145px;
+    margin-top: 7px;
+  }
+
+  .negocio-foto {
+    width: 165px;
+    height: 105px;
+    border-radius: 10px;
+    border-width: 1px;
+  }
+
+  .negocios-pista {
+    gap: 10px;
+    animation-duration: 22s;
+  }
+
+  .titulo-estoque {
+    font-size: 24px;
+    margin-top: 12px;
+    padding: 0 15px;
+  }
+}
+
+`}</style>
+
       </div>
 
       <Footer />
