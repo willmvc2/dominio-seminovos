@@ -14,7 +14,7 @@ export default function Home() {
   const carrosPorPagina = 9;
   const gridRef = useRef<HTMLDivElement>(null);
   const [imagensVendidos, setImagensVendidos] = useState<any[]>([]);
-
+  const [slideAtual, setSlideAtual] = useState(0);
   // ==========================================
   // CARROSSEL DE VEÍCULOS VENDIDOS
   // ==========================================
@@ -41,6 +41,18 @@ export default function Home() {
     carregarVendidos();
   }, []);
 
+  // SLIDE AUTOMÁTICO
+  useEffect(() => {
+    if (imagensVendidos.length <= 1) return;
+
+    const intervalo = setInterval(() => {
+      setSlideAtual((atual) =>
+        atual === imagensVendidos.length - 1 ? 0 : atual + 1
+      );
+    }, 4000);
+
+    return () => clearInterval(intervalo);
+  }, [imagensVendidos.length]);
 
 
   // 🔥 atualiza quando salva no admin
@@ -194,60 +206,80 @@ export default function Home() {
       >
 
 
-        {/* NEGÓCIOS FEITOS */}
+        {/* SLIDE PRINCIPAL */}
         {imagensVendidos.length > 0 && (
-          <section className="negocios-section">
+          <section className="hero-slider">
 
-            <div className="negocios-cabecalho">
-              <div className="negocios-linha1">
-                Negócios feitos pela
-              </div>
+            <div className="slides-container">
+              {imagensVendidos.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`hero-slide ${index === slideAtual ? "ativo" : ""
+                    }`}
+                >
+                  <img
+                    src={item.imagem}
+                    alt="Domínio Seminovos"
+                  />
 
-              <div className="negocios-linha2">
-                Domínio Seminovos
-              </div>
+                  <div className="slide-sombra"></div>
 
-              <div className="negocios-traco"></div>
-            </div>
-
-            <div className="negocios-janela">
-
-              <div className="negocios-pista">
-
-                {/* PRIMEIRA SEQUÊNCIA */}
-                {[...imagensVendidos, ...imagensVendidos, ...imagensVendidos, ...imagensVendidos].map(
-                  (item, index) => (
-                    <div
-                      className="negocio-foto"
-                      key={`${item.id}-${index}`}
-                    >
-                      <img
-                        src={item.imagem}
-                        alt="Negócio realizado pela Domínio Seminovos"
-                      />
-                    </div>
-                  )
-                )}
-
-                {/* REPETIÇÃO PARA O LOOP NÃO DAR PULO */}
-                {imagensVendidos.map((item) => (
-                  <div
-                    className="negocio-foto"
-                    key={`copia-${item.id}`}
-                  >
-                    <img
-                      src={item.imagem}
-                      alt=""
-                    />
+                  <div className="slide-texto">
+                    <span>Negócios feitos pela</span>
+                    <strong>Domínio Seminovos</strong>
                   </div>
-                ))}
-
-              </div>
-
+                </div>
+              ))}
             </div>
+
+            {imagensVendidos.length > 1 && (
+              <>
+                <button
+                  className="slide-seta slide-anterior"
+                  onClick={() =>
+                    setSlideAtual((atual) =>
+                      atual === 0
+                        ? imagensVendidos.length - 1
+                        : atual - 1
+                    )
+                  }
+                  aria-label="Slide anterior"
+                >
+                  ‹
+                </button>
+
+                <button
+                  className="slide-seta slide-proximo"
+                  onClick={() =>
+                    setSlideAtual((atual) =>
+                      atual === imagensVendidos.length - 1
+                        ? 0
+                        : atual + 1
+                    )
+                  }
+                  aria-label="Próximo slide"
+                >
+                  ›
+                </button>
+
+                <div className="slide-bolinhas">
+                  {imagensVendidos.map((item, index) => (
+                    <button
+                      key={item.id}
+                      className={`slide-bolinha ${index === slideAtual ? "ativa" : ""
+                        }`}
+                      onClick={() => setSlideAtual(index)}
+                      aria-label={`Ir para slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
 
           </section>
         )}
+
+
 
         <div className="titulo-estoque">
           Nosso Estoque
@@ -397,227 +429,316 @@ export default function Home() {
           })}
         </div>
 
-        {totalPaginas > 1 && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 20,
-              margin: "20px 0 30px",
-            }}
-          >
-            <button
-              disabled={paginaAtual === 1}
-              onClick={() => {
-                setPaginaAtual((pagina) => pagina + 1);
-
-                setTimeout(() => {
-                  gridRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-                }, 100);
-              }}
+        {
+          totalPaginas > 1 && (
+            <div
               style={{
-                padding: "10px 16px",
-                borderRadius: 8,
-                border: "1px solid #3b82f6",
-                background: "transparent",
-                color: paginaAtual === 1 ? "#64748b" : "#3b82f6",
-                cursor: paginaAtual === 1 ? "not-allowed" : "pointer",
-                fontWeight: "bold",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 20,
+                margin: "20px 0 30px",
               }}
             >
-              ← Anterior
-            </button>
+              <button
+                disabled={paginaAtual === 1}
+                onClick={() => {
+                  setPaginaAtual((pagina) => pagina + 1);
 
-            <span
-              style={{
-                color: "white",
-                fontWeight: "bold",
-              }}
-            >
-              {paginaAtual} / {totalPaginas}
-            </span>
+                  setTimeout(() => {
+                    gridRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }, 100);
+                }}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #3b82f6",
+                  background: "transparent",
+                  color: paginaAtual === 1 ? "#64748b" : "#3b82f6",
+                  cursor: paginaAtual === 1 ? "not-allowed" : "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                ← Anterior
+              </button>
 
-            <button
-              disabled={paginaAtual === totalPaginas}
-              onClick={() => {
-                setPaginaAtual((pagina) => pagina + 1);
+              <span
+                style={{
+                  color: "white",
+                  fontWeight: "bold",
+                }}
+              >
+                {paginaAtual} / {totalPaginas}
+              </span>
 
-                setTimeout(() => {
-                  gridRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-                }, 100);
-              }}
-              style={{
-                padding: "10px 16px",
-                borderRadius: 8,
-                border: "1px solid #3b82f6",
-                background: "transparent",
-                color:
-                  paginaAtual === totalPaginas ? "#64748b" : "#3b82f6",
-                cursor:
-                  paginaAtual === totalPaginas ? "not-allowed" : "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              Próxima →
-            </button>
-          </div>
-        )}
+              <button
+                disabled={paginaAtual === totalPaginas}
+                onClick={() => {
+                  setPaginaAtual((pagina) => pagina + 1);
+
+                  setTimeout(() => {
+                    gridRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }, 100);
+                }}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #3b82f6",
+                  background: "transparent",
+                  color:
+                    paginaAtual === totalPaginas ? "#64748b" : "#3b82f6",
+                  cursor:
+                    paginaAtual === totalPaginas ? "not-allowed" : "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Próxima →
+              </button>
+            </div>
+          )
+        }
 
         {/* CARROSSEL E RESPONSIVO */}
         <style jsx>{`
 
   /* ========================================
-   NEGÓCIOS FEITOS
+   SLIDE PRINCIPAL
 ======================================== */
 
-.negocios-section {
-  width: 100%;
-  padding: 42px 0 32px;
+.hero-slider {
+  position: relative;
+  width: calc(100% - 40px);
+  height: 400px;
+  margin: 20px auto 0;
   overflow: hidden;
+  background: #020617;
+  border-radius: 18px;
+}
 
+.slides-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.04);
+  transition:
+    opacity 1s ease,
+    transform 5s ease,
+    visibility 1s ease;
+}
+
+.hero-slide.ativo {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* DEGRADÊ SOBRE A FOTO */
+.slide-sombra {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(
-      ellipse at center,
-      rgba(0, 76, 180, 0.18) 0%,
-      rgba(15, 23, 42, 0) 65%
+    linear-gradient(
+      90deg,
+      rgba(2, 6, 23, 0.82) 0%,
+      rgba(2, 6, 23, 0.38) 45%,
+      rgba(2, 6, 23, 0.05) 75%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(2, 6, 23, 0.45) 0%,
+      transparent 45%
     );
 }
 
-/* TÍTULO */
-
-.negocios-cabecalho {
-  text-align: center;
-  margin-bottom: 35px;
+/* TEXTO */
+.slide-texto {
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.8);
 }
 
-.negocios-linha1 {
-  color: #b6bdca;
+.slide-texto span {
+  color: #e5e7eb;
   font-size: 25px;
   font-style: italic;
   font-weight: 400;
-  line-height: 1.1;
 }
 
-.negocios-linha2 {
-  color: #eaf2ff;
-  font-size: 34px;
+.slide-texto strong {
+  margin-top: 3px;
+  color: white;
+  font-size: 43px;
+  line-height: 1.05;
   font-style: italic;
   font-weight: 900;
-  line-height: 1.2;
-
   text-shadow:
-    0 0 8px rgba(59, 130, 246, 0.8),
-    0 0 18px rgba(37, 99, 235, 0.5);
+    0 0 12px rgba(59, 130, 246, 0.8),
+    0 0 25px rgba(37, 99, 235, 0.45);
 }
 
-.negocios-traco {
-  width: 200px;
-  height: 2px;
-  margin: 10px auto 0;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #2563eb,
-    #60a5fa,
-    #2563eb,
-    transparent
-  );
-
-  box-shadow:
-    0 0 8px #2563eb;
+/* SETAS */
+.slide-seta {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(2, 6, 23, 0.45);
+  color: white;
+  font-size: 38px;
+  line-height: 40px;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  transition: 0.25s;
 }
 
-/* JANELA DO CARROSSEL */
-
-.negocios-janela {
-  width: 100%;
-  overflow: hidden;
-  position: relative;
-
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 6%,
-    black 94%,
-    transparent 100%
-  );
-
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 6%,
-    black 94%,
-    transparent 100%
-  );
+.slide-seta:hover {
+  background: rgba(37, 99, 235, 0.8);
+  border-color: #60a5fa;
 }
 
-/* PISTA */
+.slide-anterior {
+  left: 20px;
+}
 
-.negocios-pista {
-  --gap: 22px;
+.slide-proximo {
+  right: 20px;
+}
 
+/* BOLINHAS */
+.slide-bolinhas {
+  position: absolute;
+  z-index: 5;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  width: max-content;
-  gap: var(--gap);
-
-  animation: negociosMovimento 28s linear infinite;
-  will-change: transform;
+  gap: 9px;
 }
 
-/* QUADRADOS DAS FOTOS */
-
-.negocio-foto {
-  flex: 0 0 auto;
-
-  width: 270px;
-  height: 170px;
-
-  border-radius: 15px;
-  overflow: hidden;
-
-  border: 2px solid rgba(59, 130, 246, 0.9);
-
-  background: #111827;
-
-  box-shadow:
-    0 0 8px rgba(59, 130, 246, 0.8),
-    0 0 20px rgba(37, 99, 235, 0.25),
-    0 8px 20px rgba(0, 0, 0, 0.55);
+.slide-bolinha {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: 0.3s;
 }
 
-.negocio-foto img {
-  width: 100%;
-  height: 100%;
-
-  display: block;
-  object-fit: cover;
+.slide-bolinha.ativa {
+  width: 28px;
+  border-radius: 10px;
+  background: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6;
 }
 
-/* ESQUERDA → DIREITA */
+/* TABLET */
+@media (max-width: 900px) {
 
-@keyframes negociosMovimento {
-  from {
-    transform: translateX(0);
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  to {
-    transform: translateX(calc(-50% - (var(--gap) / 2)));
+  .hero-slider {
+    height: 400px;
+  }
+
+  .slide-texto strong {
+    font-size: 36px;
+  }
+
+  .slide-texto span {
+    font-size: 21px;
   }
 }
 
 
-/* NOSSO ESTOQUE */
+/* CELULAR */
+@media (max-width: 600px) {
 
-.titulo-estoque {
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-slider {
+    height: 200px;
+  }
+
+  .slide-texto {
+    left: 14%;
+    top: 50%;
+  }
+
+  .slide-texto span {
+    font-size: 10px;
+  }
+
+  .slide-texto strong {
+    font-size: 20px;
+  }
+
+  .slide-seta {
+    width: 36px;
+    height: 36px;
+    font-size: 28px;
+    line-height: 30px;
+  }
+
+  .slide-anterior {
+    left: 10px;
+  }
+
+  .slide-proximo {
+    right: 10px;
+  }
+
+  .slide-bolinhas {
+    bottom: 12px;
+  }
+
+  .slide-bolinha {
+    width: 8px;
+    height: 8px;
+  }
+
+  .slide-bolinha.ativa {
+    width: 22px;
+  }
+
+  .titulo-estoque {
   width: 100%;
   max-width: 1100px;
   margin: 20px auto 0;
@@ -627,80 +748,14 @@ export default function Home() {
   font-weight: 900;
   box-sizing: border-box;
 }
-
-
-/* TABLET */
-
-@media (max-width: 900px) {
-
-  .grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .negocio-foto {
-    width: 230px;
-    height: 145px;
-  }
-
-  .negocios-pista {
-    gap: 14px;
-  }
 }
 
-
-/* CELULAR */
-
-@media (max-width: 600px) {
-
-  .grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .negocios-section {
-    padding: 25px 0 20px;
-  }
-
-  .negocios-cabecalho {
-    margin-bottom: 22px;
-  }
-
-  .negocios-linha1 {
-    font-size: 17px;
-  }
-
-  .negocios-linha2 {
-    font-size: 24px;
-  }
-
-  .negocios-traco {
-    width: 145px;
-    margin-top: 7px;
-  }
-
-  .negocio-foto {
-    width: 165px;
-    height: 105px;
-    border-radius: 10px;
-    border-width: 1px;
-  }
-
-  .negocios-pista {
-    gap: 10px;
-    animation-duration: 22s;
-  }
-
-  .titulo-estoque {
-    font-size: 24px;
-    margin-top: 12px;
-    padding: 0 15px;
-  }
-}
 
 `}</style>
 
-      </div>
+      </div >
 
       <Footer />
-    </main>
+    </main >
   );
 }
