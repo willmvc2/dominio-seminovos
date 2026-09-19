@@ -35,7 +35,7 @@ export default function Menu() {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        
+
         {/* LOGO */}
         <img src="/logo.png" style={styles.logo} />
 
@@ -127,7 +127,7 @@ const styles: any = {
 
   logo: {
     height: 70,
-    width: 150,
+    width: 100,
     filter: "drop-shadow(0 0 15px rgba(0,0,0,1)) drop-shadow(0 0 35px rgba(0,0,0,0.9))",
   },
 
