@@ -443,12 +443,12 @@ export default function Home() {
               <button
                 disabled={paginaAtual === 1}
                 onClick={() => {
-                  setPaginaAtual((pagina) => pagina + 1);
+                  setPaginaAtual((pagina) => pagina - 1);
 
                   setTimeout(() => {
-                    gridRef.current?.scrollIntoView({
+                    window.scrollTo({
+                      top: 0,
                       behavior: "smooth",
-                      block: "start",
                     });
                   }, 100);
                 }}

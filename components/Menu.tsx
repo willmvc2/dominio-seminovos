@@ -32,6 +32,16 @@ export default function Menu() {
     setOpen(false);
   }
 
+  function faleConosco() {
+    if (window.location.pathname === "/contato") {
+      router.back();
+    } else {
+      router.push("/contato");
+    }
+
+    setOpen(false);
+  }
+
   return (
     <header style={styles.header}>
       <div style={styles.container}>
@@ -58,8 +68,19 @@ export default function Menu() {
             </nav>
 
             {/* ✅ BOTÃO CONTATO FUNCIONANDO */}
-            <button onClick={() => router.push("/contato")} style={styles.botao}>
-              Contatos
+            {/* BOTÃO FALE CONOSCO */}
+            <button onClick={faleConosco} style={styles.botao}>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.89-9.884a9.82 9.82 0 0 1 7.021 2.91 9.83 9.83 0 0 1 2.897 7.027c-.003 5.45-4.437 9.884-9.924 9.884z" />
+              </svg>
+
+              Fale Conosco
             </button>
           </div>
         )}
@@ -90,7 +111,17 @@ export default function Menu() {
 
           {/* ✅ BOTÃO CONTATO MOBILE */}
           <button onClick={() => router.push("/contato")} style={styles.botao}>
-            Contatos
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.89-9.884a9.82 9.82 0 0 1 7.021 2.91 9.83 9.83 0 0 1 2.897 7.027c-.003 5.45-4.437 9.884-9.924 9.884z" />
+            </svg>
+
+            Fale Conosco
           </button>
         </div>
       )}
@@ -126,8 +157,8 @@ const styles: any = {
   },
 
   logo: {
-    height: 70,
-    width: 100,
+    height: 60,
+    width: 150,
     filter: "drop-shadow(0 0 15px rgba(0,0,0,1)) drop-shadow(0 0 35px rgba(0,0,0,0.9))",
   },
 
@@ -158,13 +189,18 @@ const styles: any = {
 
   botao: {
     border: `1px solid ${azul}`,
-    color: azul,
-    background: "transparent",
-    padding: "6px 14px",
+    color: "white",
+    background: "#25D366",
+    padding: "8px 16px",
     borderRadius: 20,
     cursor: "pointer",
     fontWeight: "bold",
-    boxShadow: `0 0 10px rgba(59,130,246,0.4)`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    whiteSpace: "nowrap",
+    boxShadow: "0 0 12px rgba(37,211,102,0.35)",
   },
 
   hamburguer: {
