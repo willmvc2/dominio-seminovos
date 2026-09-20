@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -20,7 +20,12 @@ export default function CarrosselVendidos() {
     const [preview, setPreview] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const [carregando, setCarregando] = useState(true);
+    const [posicaoX, setPosicaoX] = useState(50);
+    const [posicaoY, setPosicaoY] = useState(50);
 
+    const arrastando = useRef(false);
+    const inicioArraste = useRef({ x: 0, y: 0 });
+    const inicioPosicao = useRef({ x: 50, y: 50 });
     // ==========================
     // PROTEÇÃO DO ADMIN
     // ==========================
@@ -56,6 +61,8 @@ export default function CarrosselVendidos() {
 
         setCarregando(false);
     }
+
+
 
     // ==========================
     // COMPACTAR IMAGEM
@@ -148,6 +155,10 @@ export default function CarrosselVendidos() {
 
             setArquivo(compactada);
             setPreview(URL.createObjectURL(compactada));
+
+            setPosicaoX(50);
+            setPosicaoY(50);
+
         } catch (error) {
             console.error(error);
             alert("Não foi possível processar essa imagem.");
@@ -157,8 +168,104 @@ export default function CarrosselVendidos() {
     // ==========================
     // ENVIAR PARA SUPABASE
     // ==========================
+    // ==========================
+    // RECORTAR EXATAMENTE COMO A MOLDURA
+    // ==========================
+    function recortarImagem(): Promise<File> {
+        return new Promise((resolve, reject) => {
+            if (!preview || !arquivo) {
+                reject(new Error("Nenhuma imagem selecionada."));
+                return;
+            }
+
+            const img = new Image();
+
+            img.onload = () => {
+                // Formato final igual à moldura 16:7
+                const larguraFinal = 800;
+                const alturaFinal = 350;
+
+                const canvas = document.createElement("canvas");
+                canvas.width = larguraFinal;
+                canvas.height = alturaFinal;
+
+                const ctx = canvas.getContext("2d");
+
+                if (!ctx) {
+                    reject(new Error("Não foi possível criar o recorte."));
+                    return;
+                }
+
+                const proporcaoImagem = img.width / img.height;
+                const proporcaoMoldura = larguraFinal / alturaFinal;
+
+                let larguraRecorte: number;
+                let alturaRecorte: number;
+
+                // Calcula a área da imagem usada pelo object-fit: cover
+                if (proporcaoImagem > proporcaoMoldura) {
+                    alturaRecorte = img.height;
+                    larguraRecorte = alturaRecorte * proporcaoMoldura;
+                } else {
+                    larguraRecorte = img.width;
+                    alturaRecorte = larguraRecorte / proporcaoMoldura;
+                }
+
+                // Converte objectPosition 0-100% para posição real do recorte
+                const sobraX = img.width - larguraRecorte;
+                const sobraY = img.height - alturaRecorte;
+
+                const origemX = sobraX * (posicaoX / 100);
+                const origemY = sobraY * (posicaoY / 100);
+
+                ctx.drawImage(
+                    img,
+                    origemX,
+                    origemY,
+                    larguraRecorte,
+                    alturaRecorte,
+                    0,
+                    0,
+                    larguraFinal,
+                    alturaFinal
+                );
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) {
+                            reject(new Error("Não foi possível gerar o recorte."));
+                            return;
+                        }
+
+                        const nome =
+                            arquivo.name.replace(/\.[^/.]+$/, "") +
+                            "-recortada.webp";
+
+                        const arquivoRecortado = new File([blob], nome, {
+                            type: "image/webp",
+                        });
+
+                        resolve(arquivoRecortado);
+                    },
+                    "image/webp",
+                    0.82
+                );
+            };
+
+            img.onerror = () => {
+                reject(new Error("Não foi possível carregar a imagem."));
+            };
+
+            img.src = preview;
+        });
+    }
+
+
+    // ==========================
+    // ENVIAR PARA SUPABASE
+    // ==========================
     async function adicionarImagem() {
-        if (!arquivo) {
+        if (!arquivo || !preview) {
             alert("Escolha uma imagem primeiro.");
             return;
         }
@@ -166,6 +273,9 @@ export default function CarrosselVendidos() {
         setEnviando(true);
 
         try {
+            // PRIMEIRO FAZ O RECORTE REAL
+            const arquivoFinal = await recortarImagem();
+
             const nomeArquivo =
                 `${Date.now()}-${Math.random()
                     .toString(36)
@@ -173,7 +283,7 @@ export default function CarrosselVendidos() {
 
             const { error: uploadError } = await supabase.storage
                 .from("carrossel-vendidos")
-                .upload(nomeArquivo, arquivo, {
+                .upload(nomeArquivo, arquivoFinal, {
                     contentType: "image/webp",
                     upsert: false,
                 });
@@ -188,7 +298,9 @@ export default function CarrosselVendidos() {
 
             const proximaOrdem =
                 imagens.length > 0
-                    ? Math.max(...imagens.map((item) => item.ordem || 0)) + 1
+                    ? Math.max(
+                        ...imagens.map((item) => item.ordem || 0)
+                    ) + 1
                     : 1;
 
             const { error: insertError } = await supabase
@@ -200,8 +312,6 @@ export default function CarrosselVendidos() {
                 });
 
             if (insertError) {
-                // Se falhar ao gravar na tabela,
-                // remove a imagem que acabou de subir.
                 await supabase.storage
                     .from("carrossel-vendidos")
                     .remove([nomeArquivo]);
@@ -209,18 +319,20 @@ export default function CarrosselVendidos() {
                 throw insertError;
             }
 
-            if (preview) {
-                URL.revokeObjectURL(preview);
-            }
+            URL.revokeObjectURL(preview);
 
             setArquivo(null);
             setPreview(null);
+
+            setPosicaoX(50);
+            setPosicaoY(50);
 
             await carregarImagens();
 
             alert("Imagem adicionada ao carrossel!");
         } catch (error: any) {
             console.error(error);
+
             alert(
                 "Erro ao adicionar imagem: " +
                 (error?.message || "erro desconhecido")
@@ -285,6 +397,52 @@ export default function CarrosselVendidos() {
         if (bytes < 1024) return `${bytes} bytes`;
 
         return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    function iniciarArraste(e: React.PointerEvent<HTMLDivElement>) {
+        arrastando.current = true;
+
+        inicioArraste.current = {
+            x: e.clientX,
+            y: e.clientY,
+        };
+
+        inicioPosicao.current = {
+            x: posicaoX,
+            y: posicaoY,
+        };
+
+        e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
+    function moverImagem(e: React.PointerEvent<HTMLDivElement>) {
+        if (!arrastando.current) return;
+
+        const largura = e.currentTarget.clientWidth;
+        const altura = e.currentTarget.clientHeight;
+
+        const movimentoX =
+            ((e.clientX - inicioArraste.current.x) / largura) * 100;
+
+        const movimentoY =
+            ((e.clientY - inicioArraste.current.y) / altura) * 100;
+
+        const novoX = Math.max(
+            0,
+            Math.min(100, inicioPosicao.current.x - movimentoX)
+        );
+
+        const novoY = Math.max(
+            0,
+            Math.min(100, inicioPosicao.current.y - movimentoY)
+        );
+
+        setPosicaoX(novoX);
+        setPosicaoY(novoY);
+    }
+
+    function pararArraste() {
+        arrastando.current = false;
     }
 
     return (
@@ -370,50 +528,51 @@ export default function CarrosselVendidos() {
                         automaticamente para WebP com qualidade de 50%.
                     </p>
 
-                    <label
-                        style={{
-                            display: "flex",
-                            minHeight: 150,
-                            marginTop: 18,
-                            border: "2px dashed #334155",
-                            borderRadius: 12,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexDirection: "column",
-                            cursor: "pointer",
-                            padding: 20,
-                            textAlign: "center",
-                        }}
-                    >
-                        <span
+                    {!preview && (
+                        <label
                             style={{
-                                fontSize: 35,
-                                marginBottom: 10,
+                                display: "flex",
+                                minHeight: 230,
+                                marginTop: 18,
+                                border: "2px dashed #334155",
+                                borderRadius: 12,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "column",
+                                cursor: "pointer",
+                                padding: 20,
+                                textAlign: "center",
                             }}
                         >
-                            ☁️
-                        </span>
+                            <span
+                                style={{
+                                    fontSize: 35,
+                                    marginBottom: 10,
+                                }}
+                            >
+                                ☁️
+                            </span>
 
-                        <strong>Selecionar uma foto</strong>
+                            <strong>Selecionar uma foto</strong>
 
-                        <span
-                            style={{
-                                color: "#94a3b8",
-                                fontSize: 13,
-                                marginTop: 5,
-                            }}
-                        >
-                            JPG, PNG ou WEBP
-                        </span>
+                            <span
+                                style={{
+                                    color: "#94a3b8",
+                                    fontSize: 13,
+                                    marginTop: 5,
+                                }}
+                            >
+                                JPG, PNG ou WEBP
+                            </span>
 
-                        <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={selecionarImagem}
-                            style={{ display: "none" }}
-                        />
-                    </label>
-
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={selecionarImagem}
+                                style={{ display: "none" }}
+                            />
+                        </label>
+                    )}
                     {/* PREVIEW */}
                     {preview && arquivo && (
                         <div
@@ -424,20 +583,77 @@ export default function CarrosselVendidos() {
                                 padding: 15,
                             }}
                         >
-                            <img
-                                src={preview}
-                                alt="Preview"
+                            {/* EDITOR DE ENQUADRAMENTO */}
+                            <div
+                                onPointerDown={iniciarArraste}
+                                onPointerMove={moverImagem}
+                                onPointerUp={pararArraste}
+                                onPointerCancel={pararArraste}
                                 style={{
-                                    display: "block",
                                     width: "100%",
-                                    maxWidth: 500,
-                                    maxHeight: 350,
-                                    objectFit: "contain",
+                                    maxWidth: 800,
+                                    aspectRatio: "16 / 7",
                                     margin: "0 auto",
-                                    borderRadius: 10,
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    borderRadius: 12,
+                                    background: "#020617",
+                                    cursor: "grab",
+                                    touchAction: "none",
+                                    userSelect: "none",
                                 }}
-                            />
+                            >
+                                <img
+                                    src={preview}
+                                    alt="Prévia do slide"
+                                    draggable={false}
+                                    style={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        objectPosition: `${posicaoX}% ${posicaoY}%`,
+                                        display: "block",
+                                        pointerEvents: "none",
+                                        userSelect: "none",
+                                    }}
+                                />
 
+                                {/* BORDA EXATA DO CORTE 16:7 */}
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        border: "3px solid #3b82f6",
+                                        borderRadius: 10,
+                                        pointerEvents: "none",
+                                        zIndex: 2,
+                                        boxSizing: "border-box",
+                                    }}
+                                />
+
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        left: "50%",
+                                        bottom: 12,
+                                        transform: "translateX(-50%)",
+                                        background: "rgba(0,0,0,0.75)",
+                                        color: "white",
+                                        padding: "7px 12px",
+                                        borderRadius: 20,
+                                        fontSize: 12,
+                                        whiteSpace: "nowrap",
+                                        pointerEvents: "none",
+                                        zIndex: 3,
+                                    }}
+                                >
+                                    ✋ Segure e arraste para enquadrar
+                                </div>
+                            </div>
+
+                            {/* TAMANHO DA FOTO */}
                             <div
                                 style={{
                                     textAlign: "center",
@@ -452,6 +668,7 @@ export default function CarrosselVendidos() {
                                 </strong>
                             </div>
 
+                            {/* BOTÃO ENVIAR */}
                             <button
                                 onClick={adicionarImagem}
                                 disabled={enviando}
@@ -461,14 +678,10 @@ export default function CarrosselVendidos() {
                                     padding: "12px 15px",
                                     border: "none",
                                     borderRadius: 8,
-                                    background: enviando
-                                        ? "#475569"
-                                        : "#3b82f6",
+                                    background: enviando ? "#475569" : "#3b82f6",
                                     color: "white",
                                     fontWeight: "bold",
-                                    cursor: enviando
-                                        ? "not-allowed"
-                                        : "pointer",
+                                    cursor: enviando ? "not-allowed" : "pointer",
                                     fontSize: 15,
                                 }}
                             >
@@ -478,6 +691,7 @@ export default function CarrosselVendidos() {
                             </button>
                         </div>
                     )}
+
                 </div>
 
                 {/* IMAGENS CADASTRADAS */}
