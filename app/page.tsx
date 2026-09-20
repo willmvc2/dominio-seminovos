@@ -6,6 +6,7 @@ import { useCarros } from "../data/useCarros";
 import { useEffect, useRef, useState } from "react";
 import { formatarPreco } from "@/data/formatarPreco";
 import { supabase } from "@/app/lib/supabase";
+import { ShieldCheck, BadgeCheck, Handshake } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -15,6 +16,13 @@ export default function Home() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [imagensVendidos, setImagensVendidos] = useState<any[]>([]);
   const [slideAtual, setSlideAtual] = useState(0);
+
+  const [arrasteX, setArrasteX] = useState(0);
+  const [animandoSlide, setAnimandoSlide] = useState(true);
+
+  const arrastandoSlide = useRef(false);
+  const inicioArrasteX = useRef(0);
+  const larguraSlide = useRef(0);
   // ==========================================
   // CARROSSEL DE VEÍCULOS VENDIDOS
   // ==========================================
@@ -42,17 +50,41 @@ export default function Home() {
   }, []);
 
   // SLIDE AUTOMÁTICO
+  // SLIDE AUTOMÁTICO - LOOP INFINITO
   useEffect(() => {
     if (imagensVendidos.length <= 1) return;
 
     const intervalo = setInterval(() => {
-      setSlideAtual((atual) =>
-        atual === imagensVendidos.length - 1 ? 0 : atual + 1
-      );
+      if (!arrastandoSlide.current) {
+        setAnimandoSlide(true);
+        setSlideAtual((atual) => atual + 1);
+      }
     }, 4000);
 
     return () => clearInterval(intervalo);
   }, [imagensVendidos.length]);
+
+  // QUANDO CHEGAR NA CÓPIA DO PRIMEIRO SLIDE,
+  // VOLTA PARA O PRIMEIRO SEM ANIMAÇÃO
+  useEffect(() => {
+    if (
+      imagensVendidos.length > 1 &&
+      slideAtual === imagensVendidos.length
+    ) {
+      const timer = setTimeout(() => {
+        setAnimandoSlide(false);
+        setSlideAtual(0);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setAnimandoSlide(true);
+          });
+        });
+      }, 650);
+
+      return () => clearTimeout(timer);
+    }
+  }, [slideAtual, imagensVendidos.length]);
 
 
   // 🔥 atualiza quando salva no admin
@@ -204,82 +236,204 @@ export default function Home() {
           flex: 1,
         }}
       >
-
-
         {/* SLIDE PRINCIPAL */}
         {imagensVendidos.length > 0 && (
           <section className="hero-slider">
 
-            <div className="slides-container">
-              {imagensVendidos.map((item, index) => (
+            <div
+              className="slides-container"
+
+              onPointerDown={(e) => {
+                arrastandoSlide.current = true;
+                inicioArrasteX.current = e.clientX;
+                larguraSlide.current = e.currentTarget.clientWidth;
+
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+
+              onPointerMove={(e) => {
+                if (!arrastandoSlide.current) return;
+
+                const movimento =
+                  e.clientX - inicioArrasteX.current;
+
+                setArrasteX(movimento);
+              }}
+
+              onPointerUp={() => {
+                if (!arrastandoSlide.current) return;
+
+                arrastandoSlide.current = false;
+
+                const limite = larguraSlide.current * 0.2;
+
+                if (arrasteX < -limite) {
+                  setSlideAtual((atual) =>
+                    atual === imagensVendidos.length - 1
+                      ? 0
+                      : atual + 1
+                  );
+                } else if (arrasteX > limite) {
+                  setSlideAtual((atual) =>
+                    atual === 0
+                      ? imagensVendidos.length - 1
+                      : atual - 1
+                  );
+                }
+
+                setArrasteX(0);
+              }}
+
+              onPointerCancel={() => {
+                arrastandoSlide.current = false;
+                setArrasteX(0);
+              }}
+
+              style={{
+                transform: `translateX(calc(-${slideAtual * 100}% + ${arrasteX}px))`,
+
+                transition:
+                  arrastandoSlide.current || !animandoSlide
+                    ? "none"
+                    : "transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)",
+
+                touchAction: "pan-y",
+
+                cursor: arrastandoSlide.current
+                  ? "grabbing"
+                  : "grab",
+              }}
+            >
+
+              {imagensVendidos.map((item) => (
                 <div
                   key={item.id}
-                  className={`hero-slide ${index === slideAtual ? "ativo" : ""
-                    }`}
+                  className="hero-slide"
                 >
                   <img
                     src={item.imagem}
                     alt="Domínio Seminovos"
+                    draggable={false}
                   />
 
                   <div className="slide-sombra"></div>
 
                   <div className="slide-texto">
-                    <span>Negócios feitos pela</span>
-                    <strong>Domínio Seminovos</strong>
+
+                    <div className="slide-subtitulo">
+                      <i></i>
+                      <span>Negócios feitos pela</span>
+                      <i></i>
+                    </div>
+
+                    <strong>DOMÍNIO SEMINOVOS</strong>
+
+                    <p className="slide-frase">
+                      SONHOS QUE GANHAM NOVAS HISTÓRIAS.
+                    </p>
+
+                    <div className="slide-diferenciais">
+
+                      <div className="diferencial">
+                        <ShieldCheck className="diferencial-icone" />
+                        <span>CONFIANÇA</span>
+                      </div>
+
+                      <div className="diferencial-separador"></div>
+
+                      <div className="diferencial">
+                        <BadgeCheck className="diferencial-icone" />
+                        <span>QUALIDADE</span>
+                      </div>
+
+                      <div className="diferencial-separador"></div>
+
+                      <div className="diferencial">
+                        <Handshake className="diferencial-icone" />
+                        <span>SEMPRE COM VOCÊ</span>
+                      </div>
+
+                    </div>
+
                   </div>
                 </div>
               ))}
+
+              {/* CÓPIA DO PRIMEIRO SLIDE PARA LOOP INFINITO */}
+              {imagensVendidos.length > 1 && (
+                <div className="hero-slide">
+                  <img
+                    src={imagensVendidos[0].imagem}
+                    alt="Domínio Seminovos"
+                    draggable={false}
+                  />
+
+                  <div className="slide-sombra"></div>
+
+                  <div className="slide-texto">
+
+                    <div className="slide-subtitulo">
+                      <i></i>
+                      <span>Negócios feitos pela</span>
+                      <i></i>
+                    </div>
+
+                    <strong>DOMÍNIO SEMINOVOS</strong>
+
+                    <p className="slide-frase">
+                      SONHOS QUE GANHAM NOVAS HISTÓRIAS.
+                    </p>
+
+                    <div className="slide-diferenciais">
+
+                      <div className="diferencial">
+                        <ShieldCheck className="diferencial-icone" />
+                        <span>CONFIANÇA</span>
+                      </div>
+
+                      <div className="diferencial-separador"></div>
+
+                      <div className="diferencial">
+                        <BadgeCheck className="diferencial-icone" />
+                        <span>QUALIDADE</span>
+                      </div>
+
+                      <div className="diferencial-separador"></div>
+
+                      <div className="diferencial">
+                        <Handshake className="diferencial-icone" />
+                        <span>SEMPRE COM VOCÊ</span>
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
             </div>
 
+
+            {/* BOLINHAS */}
             {imagensVendidos.length > 1 && (
-              <>
-                <button
-                  className="slide-seta slide-anterior"
-                  onClick={() =>
-                    setSlideAtual((atual) =>
-                      atual === 0
-                        ? imagensVendidos.length - 1
-                        : atual - 1
-                    )
-                  }
-                  aria-label="Slide anterior"
-                >
-                  ‹
-                </button>
-
-                <button
-                  className="slide-seta slide-proximo"
-                  onClick={() =>
-                    setSlideAtual((atual) =>
-                      atual === imagensVendidos.length - 1
-                        ? 0
-                        : atual + 1
-                    )
-                  }
-                  aria-label="Próximo slide"
-                >
-                  ›
-                </button>
-
-                <div className="slide-bolinhas">
-                  {imagensVendidos.map((item, index) => (
-                    <button
-                      key={item.id}
-                      className={`slide-bolinha ${index === slideAtual ? "ativa" : ""
-                        }`}
-                      onClick={() => setSlideAtual(index)}
-                      aria-label={`Ir para slide ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
+              <div className="slide-bolinhas">
+                {imagensVendidos.map((item, index) => (
+                  <button
+                    key={item.id}
+                    className={`slide-bolinha ${index === slideAtual ? "ativa" : ""
+                      }`}
+                    onClick={() => {
+                      setSlideAtual(index);
+                      setArrasteX(0);
+                    }}
+                    aria-label={`Ir para slide ${index + 1}`}
+                  />
+                ))}
+              </div>
             )}
 
           </section>
         )}
-
-
 
         <div className="titulo-estoque">
           Nosso Estoque
@@ -510,42 +664,31 @@ export default function Home() {
   /* ========================================
    SLIDE PRINCIPAL
 ======================================== */
-
 .hero-slider {
   position: relative;
-  width: calc(100% - 40px);
-  height: 400px;
-  margin: 20px auto 0;
+  width: 100%;
+  max-width: none;
+  aspect-ratio: 16 / 7;
+  margin: 0;
   overflow: hidden;
   background: #020617;
-  border-radius: 18px;
 }
 
 .slides-container {
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  will-change: transform;
 }
 
 .hero-slide {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(1.04);
-  transition:
-    opacity 1s ease,
-    transform 5s ease,
-    visibility 1s ease;
-}
-
-.hero-slide.ativo {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  z-index: 1;
+  overflow: hidden;
+  user-select: none;
 }
 
 .hero-slide img {
@@ -553,8 +696,9 @@ export default function Home() {
   height: 100%;
   object-fit: cover;
   display: block;
+  user-select: none;
+  pointer-events: none;
 }
-
 /* DEGRADÊ SOBRE A FOTO */
 .slide-sombra {
   position: absolute;
@@ -573,7 +717,7 @@ export default function Home() {
     );
 }
 
-/* TEXTO */
+/* TEXTO PREMIUM */
 .slide-texto {
   position: absolute;
   z-index: 2;
@@ -582,58 +726,90 @@ export default function Home() {
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.8);
+  align-items: flex-start;
+  color: #ffffff;
 }
 
-.slide-texto span {
-  color: #e5e7eb;
-  font-size: 25px;
-  font-style: italic;
-  font-weight: 400;
+
+/* NEGÓCIOS FEITOS PELA */
+.slide-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
+.slide-subtitulo span {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.slide-subtitulo i {
+  display: block;
+  width: 42px;
+  height: 1px;
+  background: #3b82f6;
+}
+
+
+/* DOMÍNIO SEMINOVOS */
 .slide-texto strong {
-  margin-top: 3px;
-  color: white;
-  font-size: 43px;
-  line-height: 1.05;
-  font-style: italic;
-  font-weight: 900;
-  text-shadow:
-    0 0 12px rgba(59, 130, 246, 0.8),
-    0 0 25px rgba(37, 99, 235, 0.45);
+  color: #ffffff;
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  white-space: nowrap;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.65);
 }
 
-/* SETAS */
-.slide-seta {
-  position: absolute;
-  z-index: 5;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  background: rgba(2, 6, 23, 0.45);
-  color: white;
-  font-size: 38px;
-  line-height: 40px;
-  cursor: pointer;
-  backdrop-filter: blur(5px);
-  transition: 0.25s;
+
+/* SONHOS QUE GANHAM NOVAS HISTÓRIAS */
+.slide-frase {
+  margin: 14px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 3.2px;
+  white-space: nowrap;
 }
 
-.slide-seta:hover {
-  background: rgba(37, 99, 235, 0.8);
-  border-color: #60a5fa;
+
+/* CONFIANÇA / QUALIDADE / SEMPRE COM VOCÊ */
+.slide-diferenciais {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
 }
 
-.slide-anterior {
-  left: 20px;
+.diferencial {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
 
-.slide-proximo {
-  right: 20px;
+.diferencial-icone {
+  width: 17px;
+  height: 17px;
+  color: #3b82f6;
+  stroke-width: 1.7;
+  flex-shrink: 0;
+}
+
+.diferencial-separador {
+  width: 1px;
+  height: 20px;
+  background: rgba(59, 130, 246, 0.35);
 }
 
 /* BOLINHAS */
@@ -681,13 +857,20 @@ export default function Home() {
   }
 
   .slide-texto span {
-    font-size: 21px;
+    font-size: 10px;
   }
 }
 
 
 /* CELULAR */
 @media (max-width: 600px) {
+
+.slide-frase {
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.4px;
+}
 
   .grid {
     grid-template-columns: 1fr !important;
@@ -698,32 +881,68 @@ export default function Home() {
   }
 
   .slide-texto {
-    left: 14%;
-    top: 50%;
-  }
+  left: 5%;
+  top: 50%;
+  width: 90%;
+}
 
-  .slide-texto span {
-    font-size: 10px;
-  }
+/* NEGÓCIOS FEITOS PELA */
+.slide-subtitulo {
+  gap: 6px;
+  margin-bottom: 5px;
+}
 
-  .slide-texto strong {
-    font-size: 20px;
-  }
+.slide-subtitulo span {
+  font-size: 6px;
+  letter-spacing: 1.4px;
+}
 
-  .slide-seta {
-    width: 36px;
-    height: 36px;
-    font-size: 28px;
-    line-height: 30px;
-  }
+.slide-subtitulo i {
+  width: 18px;
+}
 
-  .slide-anterior {
-    left: 10px;
-  }
+/* DOMÍNIO SEMINOVOS */
+.slide-texto strong {
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -0.4px;
+}
 
-  .slide-proximo {
-    right: 10px;
-  }
+/* SONHOS QUE GANHAM NOVAS HISTÓRIAS */
+.slide-frase {
+  margin-top: 7px;
+  font-size: 6px;
+  line-height: 1.2;
+  letter-spacing: 1.2px;
+}
+
+/* CONFIANÇA / QUALIDADE / SEMPRE COM VOCÊ */
+.slide-diferenciais {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.diferencial {
+  gap: 3px;
+  font-size: 5px !important;
+  letter-spacing: 0.3px;
+}
+
+.diferencial span {
+  font-size: 6px !important;
+}
+
+.diferencial-icone {
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  stroke-width: 1.0;
+}
+
+.diferencial-separador {
+  width: 1px;
+  height: 9px;
+}
 
   .slide-bolinhas {
     bottom: 12px;
