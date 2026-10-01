@@ -126,9 +126,14 @@ export default function NovoCarro() {
 
     for (const file of Array.from(files)) {
       try {
+        console.log("ARQUIVO RECEBIDO:", {
+          nome: file.name,
+          tipo: file.type,
+          tamanho: file.size,
+        });
+
         // COMPACTA A FOTO
         const imagemCompactada = await compactarImagem(file);
-
         // Salva sempre como WebP
         const nomeArquivo = `${Date.now()}-${Math.random()
           .toString(36)
@@ -150,9 +155,16 @@ export default function NovoCarro() {
         const url = `https://totdnqrhmgsjqvswujho.supabase.co/storage/v1/object/public/carros/${nomeArquivo}`;
 
         urls.push(url);
-      } catch (error) {
-        console.log(error);
-        alert("Erro ao processar imagem");
+      } catch (error: any) {
+        console.error("ERRO AO PROCESSAR:", error);
+
+        alert(
+          `Erro ao processar imagem.\n\n` +
+          `Arquivo: ${file.name}\n` +
+          `Formato: ${file.type || "não identificado"}\n\n` +
+          `${error?.message || "Erro desconhecido"}`
+        );
+
         setCarregandoImagem(false);
         return;
       }
@@ -291,6 +303,7 @@ export default function NovoCarro() {
           <input
             type="file"
             multiple
+            accept="image/*,.heic,.heif"
             hidden
             onChange={adicionarImagem}
           />
