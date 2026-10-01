@@ -61,13 +61,11 @@ export default function CarrosselVendidos() {
 
         setCarregando(false);
     }
-
-
-
     // ==========================
     // COMPACTAR IMAGEM
+    // PADRÃO NOVO / EDITAR
     // ==========================
-    function compactarImagem(file: File): Promise<File> {
+    async function compactarImagem(file: File): Promise<File> {
         return new Promise((resolve, reject) => {
             const img = new Image();
             const urlTemporaria = URL.createObjectURL(file);
@@ -75,90 +73,143 @@ export default function CarrosselVendidos() {
             img.onload = () => {
                 URL.revokeObjectURL(urlTemporaria);
 
-                const MAX_SIZE = 1400;
+                try {
+                    const MAX_SIZE = 1400;
 
-                let largura = img.naturalWidth;
-                let altura = img.naturalHeight;
+                    let largura = img.naturalWidth;
+                    let altura = img.naturalHeight;
 
-                if (largura > MAX_SIZE || altura > MAX_SIZE) {
-                    const escala = Math.min(
-                        MAX_SIZE / largura,
-                        MAX_SIZE / altura
-                    );
+                    if (!largura || !altura) {
+                        reject(
+                            new Error("A imagem não possui dimensões válidas.")
+                        );
+                        return;
+                    }
 
-                    largura = Math.round(largura * escala);
-                    altura = Math.round(altura * escala);
-                }
+                    if (largura > MAX_SIZE || altura > MAX_SIZE) {
+                        const escala = Math.min(
+                            MAX_SIZE / largura,
+                            MAX_SIZE / altura
+                        );
 
-                const canvas = document.createElement("canvas");
+                        largura = Math.round(largura * escala);
+                        altura = Math.round(altura * escala);
+                    }
 
-                canvas.width = largura;
-                canvas.height = altura;
+                    const canvas = document.createElement("canvas");
 
-                const ctx = canvas.getContext("2d");
+                    canvas.width = largura;
+                    canvas.height = altura;
 
-                if (!ctx) {
-                    reject(new Error("Não foi possível processar a imagem."));
-                    return;
-                }
+                    const ctx = canvas.getContext("2d");
 
-                ctx.drawImage(img, 0, 0, largura, altura);
+                    if (!ctx) {
+                        reject(
+                            new Error("Não foi possível processar a imagem.")
+                        );
+                        return;
+                    }
 
-                canvas.toBlob(
-                    (blob) => {
-                        if (!blob) {
-                            reject(new Error("Erro ao compactar imagem."));
-                            return;
-                        }
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = "high";
 
-                        if (blob.type !== "image/webp") {
-                            reject(
-                                new Error(
-                                    `Conversão falhou. Formato gerado: ${blob.type}`
-                                )
+                    ctx.drawImage(img, 0, 0, largura, altura);
+
+                    // PRIMEIRO TENTA WEBP
+                    canvas.toBlob(
+                        (blobWebp) => {
+                            if (
+                                blobWebp &&
+                                blobWebp.size > 0 &&
+                                blobWebp.type === "image/webp"
+                            ) {
+                                const nome =
+                                    file.name.replace(/\.[^/.]+$/, "") +
+                                    ".webp";
+
+                                const novoArquivo = new File(
+                                    [blobWebp],
+                                    nome,
+                                    {
+                                        type: "image/webp",
+                                    }
+                                );
+
+                                console.log(
+                                    "CARROSSEL COMPACTADA WEBP:",
+                                    (novoArquivo.size / 1024).toFixed(0) + " KB",
+                                    `${largura}x${altura}`
+                                );
+
+                                resolve(novoArquivo);
+                                return;
+                            }
+
+                            // FALLBACK JPEG
+                            canvas.toBlob(
+                                (blobJpeg) => {
+                                    if (
+                                        !blobJpeg ||
+                                        blobJpeg.size === 0
+                                    ) {
+                                        reject(
+                                            new Error(
+                                                "O navegador não conseguiu gerar a imagem compactada."
+                                            )
+                                        );
+                                        return;
+                                    }
+
+                                    const nome =
+                                        file.name.replace(
+                                            /\.[^/.]+$/,
+                                            ""
+                                        ) + ".jpg";
+
+                                    const novoArquivo = new File(
+                                        [blobJpeg],
+                                        nome,
+                                        {
+                                            type: "image/jpeg",
+                                        }
+                                    );
+
+                                    console.log(
+                                        "CARROSSEL COMPACTADA JPEG:",
+                                        (
+                                            novoArquivo.size / 1024
+                                        ).toFixed(0) + " KB",
+                                        `${largura}x${altura}`
+                                    );
+
+                                    resolve(novoArquivo);
+                                },
+                                "image/jpeg",
+                                0.72
                             );
-                            return;
-                        }
-
-                        console.log(
-                            "CARROSSEL ORIGINAL:",
-                            (file.size / 1024).toFixed(0) + " KB",
-                            file.type
-                        );
-
-                        console.log(
-                            "CARROSSEL COMPACTADA:",
-                            (blob.size / 1024).toFixed(0) + " KB",
-                            blob.type,
-                            `${largura}x${altura}`
-                        );
-
-                        const nome =
-                            file.name.replace(/\.[^/.]+$/, "") + ".webp";
-
-                        const novoArquivo = new File([blob], nome, {
-                            type: "image/webp",
-                        });
-
-                        resolve(novoArquivo);
-                    },
-                    "image/webp",
-                    0.72
-                );
+                        },
+                        "image/webp",
+                        0.72
+                    );
+                } catch (error) {
+                    reject(error);
+                }
             };
 
             img.onerror = () => {
                 URL.revokeObjectURL(urlTemporaria);
-                reject(new Error("Imagem inválida."));
+
+                reject(
+                    new Error(
+                        "O navegador não conseguiu abrir esta imagem."
+                    )
+                );
             };
 
             img.src = urlTemporaria;
         });
     }
 
-    // ==========================
-    // ESCOLHER FOTO
-    // ==========================
     async function selecionarImagem(
         e: React.ChangeEvent<HTMLInputElement>
     ) {
@@ -251,25 +302,55 @@ export default function CarrosselVendidos() {
                 );
 
                 canvas.toBlob(
-                    (blob) => {
-                        if (!blob) {
-                            reject(new Error("Não foi possível gerar o recorte."));
+                    (blobWebp) => {
+                        if (
+                            blobWebp &&
+                            blobWebp.size > 0 &&
+                            blobWebp.type === "image/webp"
+                        ) {
+                            const nome =
+                                arquivo.name.replace(/\.[^/.]+$/, "") +
+                                "-recortada.webp";
+
+                            resolve(
+                                new File([blobWebp], nome, {
+                                    type: "image/webp",
+                                })
+                            );
+
                             return;
                         }
 
-                        const nome =
-                            arquivo.name.replace(/\.[^/.]+$/, "") +
-                            "-recortada.webp";
+                        // FALLBACK JPEG
+                        canvas.toBlob(
+                            (blobJpeg) => {
+                                if (!blobJpeg || blobJpeg.size === 0) {
+                                    reject(
+                                        new Error(
+                                            "Não foi possível gerar o recorte."
+                                        )
+                                    );
+                                    return;
+                                }
 
-                        const arquivoRecortado = new File([blob], nome, {
-                            type: "image/webp",
-                        });
+                                const nome =
+                                    arquivo.name.replace(/\.[^/.]+$/, "") +
+                                    "-recortada.jpg";
 
-                        resolve(arquivoRecortado);
+                                resolve(
+                                    new File([blobJpeg], nome, {
+                                        type: "image/jpeg",
+                                    })
+                                );
+                            },
+                            "image/jpeg",
+                            0.72
+                        );
                     },
                     "image/webp",
                     0.72
                 );
+
             };
 
             img.onerror = () => {
@@ -296,15 +377,23 @@ export default function CarrosselVendidos() {
             // PRIMEIRO FAZ O RECORTE REAL
             const arquivoFinal = await recortarImagem();
 
+            const ehWebp = arquivoFinal.type === "image/webp";
+
+            const extensao = ehWebp ? "webp" : "jpg";
+
+            const contentType = ehWebp
+                ? "image/webp"
+                : "image/jpeg";
+
             const nomeArquivo =
                 `${Date.now()}-${Math.random()
                     .toString(36)
-                    .substring(2, 8)}.webp`;
+                    .substring(2, 8)}.${extensao}`;
 
             const { error: uploadError } = await supabase.storage
                 .from("carrossel-vendidos")
                 .upload(nomeArquivo, arquivoFinal, {
-                    contentType: "image/webp",
+                    contentType,
                     upsert: false,
                 });
 

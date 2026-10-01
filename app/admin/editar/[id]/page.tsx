@@ -137,8 +137,7 @@ export default function EditarCarro() {
     setArrastoX(0);
   }
 
-  // COMPACTAR IMAGEM
-  // COMPACTAR IMAGEM
+  // COMPACTAR IMAGEM ANTES DE ENVIAR AO SUPABASE
   async function compactarImagem(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -147,75 +146,102 @@ export default function EditarCarro() {
       img.onload = () => {
         URL.revokeObjectURL(urlTemporaria);
 
-        const MAX_SIZE = 1400;
+        try {
+          const MAX_SIZE = 1400;
 
-        let largura = img.naturalWidth;
-        let altura = img.naturalHeight;
+          let largura = img.naturalWidth;
+          let altura = img.naturalHeight;
 
-        if (largura > MAX_SIZE || altura > MAX_SIZE) {
-          const escala = Math.min(
-            MAX_SIZE / largura,
-            MAX_SIZE / altura
-          );
+          if (!largura || !altura) {
+            reject(new Error("A imagem não possui dimensões válidas."));
+            return;
+          }
 
-          largura = Math.round(largura * escala);
-          altura = Math.round(altura * escala);
-        }
+          if (largura > MAX_SIZE || altura > MAX_SIZE) {
+            const escala = Math.min(
+              MAX_SIZE / largura,
+              MAX_SIZE / altura
+            );
 
-        const canvas = document.createElement("canvas");
+            largura = Math.round(largura * escala);
+            altura = Math.round(altura * escala);
+          }
 
-        canvas.width = largura;
-        canvas.height = altura;
+          const canvas = document.createElement("canvas");
 
-        const ctx = canvas.getContext("2d");
+          canvas.width = largura;
+          canvas.height = altura;
 
-        if (!ctx) {
-          reject(new Error("Não foi possível processar a imagem"));
-          return;
-        }
+          const ctx = canvas.getContext("2d");
 
-        ctx.drawImage(img, 0, 0, largura, altura);
+          if (!ctx) {
+            reject(new Error("Não foi possível processar a imagem."));
+            return;
+          }
 
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error("Erro ao compactar imagem"));
-              return;
-            }
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
 
-            // CONFIRMA QUE VIROU WEBP DE VERDADE
-            if (blob.type !== "image/webp") {
-              reject(
-                new Error(
-                  `Conversão falhou. Formato gerado: ${blob.type}`
-                )
+          ctx.drawImage(img, 0, 0, largura, altura);
+
+          // PRIMEIRO TENTA WEBP
+          canvas.toBlob(
+            (blobWebp) => {
+              if (
+                blobWebp &&
+                blobWebp.size > 0 &&
+                blobWebp.type === "image/webp"
+              ) {
+                console.log(
+                  "COMPACTADA WEBP:",
+                  (blobWebp.size / 1024).toFixed(0) + " KB",
+                  `${largura}x${altura}`
+                );
+
+                resolve(blobWebp);
+                return;
+              }
+
+              // FALLBACK PARA JPEG
+              canvas.toBlob(
+                (blobJpeg) => {
+                  if (!blobJpeg || blobJpeg.size === 0) {
+                    reject(
+                      new Error(
+                        "O navegador não conseguiu gerar a imagem compactada."
+                      )
+                    );
+                    return;
+                  }
+
+                  console.log(
+                    "COMPACTADA JPEG:",
+                    (blobJpeg.size / 1024).toFixed(0) + " KB",
+                    `${largura}x${altura}`
+                  );
+
+                  resolve(blobJpeg);
+                },
+                "image/jpeg",
+                0.72
               );
-              return;
-            }
-
-            console.log(
-              "ORIGINAL:",
-              (file.size / 1024).toFixed(0) + " KB",
-              file.type
-            );
-
-            console.log(
-              "COMPACTADA:",
-              (blob.size / 1024).toFixed(0) + " KB",
-              blob.type,
-              `${largura}x${altura}`
-            );
-
-            resolve(blob);
-          },
-          "image/webp",
-          0.72
-        );
+            },
+            "image/webp",
+            0.72
+          );
+        } catch (error) {
+          reject(error);
+        }
       };
 
       img.onerror = () => {
         URL.revokeObjectURL(urlTemporaria);
-        reject(new Error("Erro ao carregar imagem"));
+
+        reject(
+          new Error(
+            "O navegador não conseguiu abrir esta imagem."
+          )
+        );
       };
 
       img.src = urlTemporaria;
@@ -237,16 +263,21 @@ export default function EditarCarro() {
 
     for (const file of Array.from(files)) {
       try {
+
         const imagemCompactada = await compactarImagem(file);
+
+        const ehWebp = imagemCompactada.type === "image/webp";
+        const extensao = ehWebp ? "webp" : "jpg";
+        const contentType = ehWebp ? "image/webp" : "image/jpeg";
 
         const nomeArquivo = `${Date.now()}-${Math.random()
           .toString(36)
-          .substring(2)}.webp`;
+          .substring(2)}.${extensao}`;
 
         const { error } = await supabase.storage
           .from("carros")
           .upload(nomeArquivo, imagemCompactada, {
-            contentType: "image/webp",
+            contentType,
           });
 
         if (error) {
