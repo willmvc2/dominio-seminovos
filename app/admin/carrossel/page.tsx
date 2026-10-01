@@ -70,48 +70,68 @@ export default function CarrosselVendidos() {
     function compactarImagem(file: File): Promise<File> {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            const url = URL.createObjectURL(file);
+            const urlTemporaria = URL.createObjectURL(file);
 
             img.onload = () => {
-                const maxWidth = 800;
-                const maxHeight = 800;
+                URL.revokeObjectURL(urlTemporaria);
 
-                let width = img.width;
-                let height = img.height;
+                const MAX_SIZE = 1400;
 
-                if (width > maxWidth || height > maxHeight) {
-                    const proporcao = Math.min(
-                        maxWidth / width,
-                        maxHeight / height
+                let largura = img.naturalWidth;
+                let altura = img.naturalHeight;
+
+                if (largura > MAX_SIZE || altura > MAX_SIZE) {
+                    const escala = Math.min(
+                        MAX_SIZE / largura,
+                        MAX_SIZE / altura
                     );
 
-                    width = Math.round(width * proporcao);
-                    height = Math.round(height * proporcao);
+                    largura = Math.round(largura * escala);
+                    altura = Math.round(altura * escala);
                 }
 
                 const canvas = document.createElement("canvas");
 
-                canvas.width = width;
-                canvas.height = height;
+                canvas.width = largura;
+                canvas.height = altura;
 
                 const ctx = canvas.getContext("2d");
 
                 if (!ctx) {
-                    URL.revokeObjectURL(url);
                     reject(new Error("Não foi possível processar a imagem."));
                     return;
                 }
 
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, largura, altura);
 
                 canvas.toBlob(
                     (blob) => {
-                        URL.revokeObjectURL(url);
-
                         if (!blob) {
                             reject(new Error("Erro ao compactar imagem."));
                             return;
                         }
+
+                        if (blob.type !== "image/webp") {
+                            reject(
+                                new Error(
+                                    `Conversão falhou. Formato gerado: ${blob.type}`
+                                )
+                            );
+                            return;
+                        }
+
+                        console.log(
+                            "CARROSSEL ORIGINAL:",
+                            (file.size / 1024).toFixed(0) + " KB",
+                            file.type
+                        );
+
+                        console.log(
+                            "CARROSSEL COMPACTADA:",
+                            (blob.size / 1024).toFixed(0) + " KB",
+                            blob.type,
+                            `${largura}x${altura}`
+                        );
 
                         const nome =
                             file.name.replace(/\.[^/.]+$/, "") + ".webp";
@@ -123,16 +143,16 @@ export default function CarrosselVendidos() {
                         resolve(novoArquivo);
                     },
                     "image/webp",
-                    0.5
+                    0.72
                 );
             };
 
             img.onerror = () => {
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(urlTemporaria);
                 reject(new Error("Imagem inválida."));
             };
 
-            img.src = url;
+            img.src = urlTemporaria;
         });
     }
 
@@ -248,7 +268,7 @@ export default function CarrosselVendidos() {
                         resolve(arquivoRecortado);
                     },
                     "image/webp",
-                    0.82
+                    0.72
                 );
             };
 
@@ -462,19 +482,20 @@ export default function CarrosselVendidos() {
                 }}
             >
                 {/* VOLTAR */}
+                {/* VOLTAR */}
                 <button
                     onClick={() => router.push("/admin")}
                     style={{
-                        background: "transparent",
+                        marginBottom: 20,
+                        padding: "8px 12px",
+                        background: "#374151",
+                        color: "white",
                         border: "none",
-                        color: "#3b82f6",
-                        fontWeight: "bold",
+                        borderRadius: 6,
                         cursor: "pointer",
-                        fontSize: 15,
-                        marginBottom: 25,
                     }}
                 >
-                    ← Voltar ao Admin
+                    ← Voltar
                 </button>
 
                 {/* TÍTULO */}

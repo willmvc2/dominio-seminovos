@@ -138,6 +138,7 @@ export default function EditarCarro() {
   }
 
   // COMPACTAR IMAGEM
+  // COMPACTAR IMAGEM
   async function compactarImagem(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -148,20 +149,21 @@ export default function EditarCarro() {
 
         const MAX_SIZE = 1400;
 
-        let largura = img.width;
-        let altura = img.height;
+        let largura = img.naturalWidth;
+        let altura = img.naturalHeight;
 
         if (largura > MAX_SIZE || altura > MAX_SIZE) {
-          if (largura > altura) {
-            altura = Math.round((altura * MAX_SIZE) / largura);
-            largura = MAX_SIZE;
-          } else {
-            largura = Math.round((largura * MAX_SIZE) / altura);
-            altura = MAX_SIZE;
-          }
+          const escala = Math.min(
+            MAX_SIZE / largura,
+            MAX_SIZE / altura
+          );
+
+          largura = Math.round(largura * escala);
+          altura = Math.round(altura * escala);
         }
 
         const canvas = document.createElement("canvas");
+
         canvas.width = largura;
         canvas.height = altura;
 
@@ -180,6 +182,29 @@ export default function EditarCarro() {
               reject(new Error("Erro ao compactar imagem"));
               return;
             }
+
+            // CONFIRMA QUE VIROU WEBP DE VERDADE
+            if (blob.type !== "image/webp") {
+              reject(
+                new Error(
+                  `Conversão falhou. Formato gerado: ${blob.type}`
+                )
+              );
+              return;
+            }
+
+            console.log(
+              "ORIGINAL:",
+              (file.size / 1024).toFixed(0) + " KB",
+              file.type
+            );
+
+            console.log(
+              "COMPACTADA:",
+              (blob.size / 1024).toFixed(0) + " KB",
+              blob.type,
+              `${largura}x${altura}`
+            );
 
             resolve(blob);
           },
@@ -344,7 +369,7 @@ export default function EditarCarro() {
                   style={{
                     width: "100%",
                     height: "100%",
-                    objectFit: "cover",
+                    objectFit: "contain",
                     flex: "0 0 100%",
                     userSelect: "none",
                     WebkitUserSelect: "none",
@@ -354,18 +379,43 @@ export default function EditarCarro() {
               ))}
             </div>
           ) : (
-            <img
-              src="/logo.png"
-              draggable={false}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                userSelect: "none",
-                pointerEvents: "none",
-              }}
-            />
+            <>
+              <img
+                src="/logo.png"
+                draggable={false}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  opacity: 0.4,
+                  userSelect: "none",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: "bold",
+                  fontSize: 20,
+                  textShadow:
+                    "0 0 5px #918888, 0 0 10px #000, 0 0 15px #000, 3px 3px 8px #000",
+                  background: "rgba(0,0,0,0.4)",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                📸 Inserir fotos
+              </div>
+            </>
           )}
+
         </div>
 
         {/* MINIATURAS - CARROSSEL HORIZONTAL */}
@@ -399,7 +449,7 @@ export default function EditarCarro() {
                   style={{
                     width: 80,
                     height: 60,
-                    objectFit: "cover",
+                    objectFit: "contain",
                     borderRadius: 6,
                     cursor: "pointer",
                     border:

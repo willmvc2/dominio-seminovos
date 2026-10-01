@@ -303,7 +303,7 @@ export default function DetalheCarro() {
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
+                objectFit: "contain",
                 userSelect: "none",
                 pointerEvents: "none",
               }}

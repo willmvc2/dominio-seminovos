@@ -37,21 +37,21 @@ export default function NovoCarro() {
 
         const MAX_SIZE = 1400;
 
-        let largura = img.width;
-        let altura = img.height;
+        let largura = img.naturalWidth;
+        let altura = img.naturalHeight;
 
-        // Redimensiona mantendo a proporção
         if (largura > MAX_SIZE || altura > MAX_SIZE) {
-          if (largura > altura) {
-            altura = Math.round((altura * MAX_SIZE) / largura);
-            largura = MAX_SIZE;
-          } else {
-            largura = Math.round((largura * MAX_SIZE) / altura);
-            altura = MAX_SIZE;
-          }
+          const escala = Math.min(
+            MAX_SIZE / largura,
+            MAX_SIZE / altura
+          );
+
+          largura = Math.round(largura * escala);
+          altura = Math.round(altura * escala);
         }
 
         const canvas = document.createElement("canvas");
+
         canvas.width = largura;
         canvas.height = altura;
 
@@ -70,6 +70,29 @@ export default function NovoCarro() {
               reject(new Error("Erro ao compactar imagem"));
               return;
             }
+
+            // SEGURANÇA: confirma que virou WebP de verdade
+            if (blob.type !== "image/webp") {
+              reject(
+                new Error(
+                  `Conversão falhou. Formato gerado: ${blob.type}`
+                )
+              );
+              return;
+            }
+
+            console.log(
+              "ORIGINAL:",
+              (file.size / 1024).toFixed(0) + " KB",
+              file.type
+            );
+
+            console.log(
+              "COMPACTADA:",
+              (blob.size / 1024).toFixed(0) + " KB",
+              blob.type,
+              `${largura}x${altura}`
+            );
 
             resolve(blob);
           },
