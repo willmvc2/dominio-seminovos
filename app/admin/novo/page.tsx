@@ -65,49 +65,60 @@ export default function NovoCarro() {
         ctx.drawImage(img, 0, 0, largura, altura);
 
         canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error("Erro ao compactar imagem"));
-              return;
-            }
-
-            // SEGURANÇA: confirma que virou WebP de verdade
-            if (blob.type !== "image/webp") {
-              reject(
-                new Error(
-                  `Conversão falhou. Formato gerado: ${blob.type}`
-                )
+          (blobWebp) => {
+            // SE O NAVEGADOR GEROU WEBP, USA WEBP
+            if (blobWebp && blobWebp.type === "image/webp") {
+              console.log(
+                "COMPACTADA WEBP:",
+                (blobWebp.size / 1024).toFixed(0) + " KB",
+                `${largura}x${altura}`
               );
+
+              resolve(blobWebp);
               return;
             }
 
-            console.log(
-              "ORIGINAL:",
-              (file.size / 1024).toFixed(0) + " KB",
-              file.type
-            );
+            // IPHONE/SAFARI:
+            // SE NÃO CONSEGUIR WEBP, GERA JPEG COMPACTADO
+            canvas.toBlob(
+              (blobJpeg) => {
+                if (!blobJpeg) {
+                  reject(new Error("Erro ao compactar imagem"));
+                  return;
+                }
 
-            console.log(
-              "COMPACTADA:",
-              (blob.size / 1024).toFixed(0) + " KB",
-              blob.type,
-              `${largura}x${altura}`
-            );
+                if (blobJpeg.type !== "image/jpeg") {
+                  reject(
+                    new Error(
+                      `Formato não suportado: ${blobJpeg.type}`
+                    )
+                  );
+                  return;
+                }
 
-            resolve(blob);
+                console.log(
+                  "COMPACTADA JPEG:",
+                  (blobJpeg.size / 1024).toFixed(0) + " KB",
+                  `${largura}x${altura}`
+                );
+
+                resolve(blobJpeg);
+              },
+              "image/jpeg",
+              0.72
+            );
           },
           "image/webp",
           0.72
         );
-      };
 
-      img.onerror = () => {
-        URL.revokeObjectURL(urlTemporaria);
-        reject(new Error("Erro ao carregar imagem"));
-      };
+        img.onerror = () => {
+          URL.revokeObjectURL(urlTemporaria);
+          reject(new Error("Erro ao carregar imagem"));
+        };
 
-      img.src = urlTemporaria;
-    });
+        img.src = urlTemporaria;
+      });
   }
 
   // UPLOAD SUPABASE STORAGE
@@ -134,15 +145,21 @@ export default function NovoCarro() {
 
         // COMPACTA A FOTO
         const imagemCompactada = await compactarImagem(file);
-        // Salva sempre como WebP
+
+        // Usa a extensão correta conforme o formato gerado
+        const extensao =
+          imagemCompactada.type === "image/webp"
+            ? "webp"
+            : "jpg";
+
         const nomeArquivo = `${Date.now()}-${Math.random()
           .toString(36)
-          .substring(2)}.webp`;
+          .substring(2)}.${extensao}`;
 
         const { error } = await supabase.storage
           .from("carros")
           .upload(nomeArquivo, imagemCompactada, {
-            contentType: "image/webp",
+            contentType: imagemCompactada.type,
           });
 
         if (error) {
