@@ -200,7 +200,10 @@ export default function NovoCarro() {
                 setFullscreen(true);
               }
             }}
-            style={styles.mainImage}
+            style={{
+              ...styles.mainImage,
+              opacity: imagens.length === 0 ? 0.4 : 1,
+            }}
           />
 
           {imagens.length === 0 && (
@@ -213,7 +216,8 @@ export default function NovoCarro() {
                 justifyContent: "center",
                 color: "white",
                 fontWeight: "bold",
-                fontSize: 18,
+                fontSize: 20,
+                textShadow: "0 0 5px #918888, 0 0 10px #000, 0 0 15px #000, 3px 3px 8px #000",
                 background: "rgba(0,0,0,0.4)",
                 borderRadius: 10,
                 cursor: "pointer",
@@ -431,7 +435,7 @@ const styles: any = {
   mainImage: {
     width: "100%",
     height: 300,
-    objectFit: "cover",
+    objectFit: "contain",
     borderRadius: 10,
   },
 

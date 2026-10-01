@@ -305,7 +305,7 @@ export default function Home() {
               }}
             >
 
-              {imagensVendidos.map((item) => (
+              {imagensVendidos.map((item, index) => (
                 <div
                   key={item.id}
                   className="hero-slide"
@@ -314,6 +314,9 @@ export default function Home() {
                     src={item.imagem}
                     alt="Domínio Seminovos"
                     draggable={false}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    fetchPriority={index === 0 ? "high" : "low"}
                   />
 
                   <div className="slide-sombra"></div>
@@ -366,6 +369,9 @@ export default function Home() {
                     src={imagensVendidos[0].imagem}
                     alt="Domínio Seminovos"
                     draggable={false}
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                   />
 
                   <div className="slide-sombra"></div>
@@ -518,7 +524,10 @@ export default function Home() {
                             }
                           })()
                           : "/logo.png"
+
                     }
+                    loading="lazy"
+                    decoding="async"
                     style={{
                       width: "100%",
                       height: 180,
